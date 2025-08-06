@@ -45,11 +45,13 @@ def handle_client(client: socket.socket):
             client.sendall(message.encode())
         elif "set" in elements[0].lower():
             # Respond with OK
-            store = elements[2]
+            store[elements[1]] = elements[2]
             client.sendall(b"+OK\r\n")
 
         elif "get" in elements[0].lower():
-            msg = store[0]
+            if elements[1] not in store:
+                client.sendall(b"$-1\r\n")
+            msg = store[elements[1]]
             message = f"${len(msg)}\r\n{msg}\r\n"
             client.sendall(message.encode())
 
