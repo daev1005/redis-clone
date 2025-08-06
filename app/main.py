@@ -60,6 +60,9 @@ def handle_client(client: socket.socket):
             # If the key does not exist, respond with $-1
             if elements[1] not in store:
                 client.sendall(b"$-1\r\n")
+            if elements[1] not in expiration_time:
+                raise ValueError("Key not found in expiration time")
+            # If the key exists and has not expired, respond with the value   
             if time.time() < expiration_time[elements[1]]:
                 msg = store[elements[1]]
                 message = f"${len(msg)}\r\n{msg}\r\n"
