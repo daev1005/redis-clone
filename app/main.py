@@ -48,7 +48,8 @@ def handle_client(client: socket.socket):
         elif "get" in elements[0].lower():
             # Responds with the set message
             msg = elements[1]
-            client.sendall(f"${len(msg)}\r\n{msg}\r\n")
+            message = f"${len(msg)}\r\n{msg}\r\n"
+            client.sendall(message.encode())
 
 
 def main():
