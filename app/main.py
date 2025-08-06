@@ -12,7 +12,8 @@ def handle_client(client: socket.socket):
             client.sendall(b"+PONG\r\n")
         elif "echo" in cmd[0].lower():
             message = " ".join(cmd[1:])
-            client.sendall(f"${len(message)}\r\n{message}\r\n".encode())
+            response = f"${len(message)}\r\n{message}\r\n"
+            client.sendall(response.encode())
 
 
 def main():
