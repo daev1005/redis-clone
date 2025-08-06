@@ -4,10 +4,15 @@ import threading
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     while True:
+        #1024 is the bytesize of the input buffer
         input = client.recv(1024)
-        if "ping" in input.decode().strip().lower():
+        cmd = input.decode().strip().split()
+        if "ping" in cmd[0].lower():
             # Respond with PONG
             client.sendall(b"+PONG\r\n")
+        elif "echo" in cmd[0].lower():
+            message = " ".join(cmd[1:])
+            client.sendall(f"$ {len(message)}\r\n{message}\r\n".encode())
 
 
 def main():
