@@ -14,7 +14,7 @@ def main():
     while True:
         input = connection.recv(1024)
         if input.decode().strip().lower == "ping":
-            connection.send(b"+PONG\r\n".encode())
+            connection.send("+PONG\r\n".encode())
     
 
 
