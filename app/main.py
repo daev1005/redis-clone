@@ -49,8 +49,9 @@ def handle_client(client: socket.socket):
         elif "set" in elements[0].lower():
             # Store the key-value pair in the store
             store[elements[1]] = elements[2]
-            if elements[3].lower() == "px":
-                expiration_time[elements[1]] = time.time() + (int(elements[4]) / 1000.0)
+            if len(elements) > 3:
+                if elements[3].lower() == "px":
+                    expiration_time[elements[1]] = time.time() + (int(elements[4]) / 1000.0)
             # Respond with OK
             client.sendall(b"+OK\r\n")
 
