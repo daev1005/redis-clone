@@ -3,10 +3,11 @@ import threading
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
-    input = client.recv(1024)
-    if "ping" in input.decode().strip().lower():
-        # Respond with PONG
-        client.sendall(b"+PONG\r\n")
+    while True:
+        input = client.recv(1024)
+        if "ping" in input.decode().strip().lower():
+            # Respond with PONG
+            client.sendall(b"+PONG\r\n")
 
 
 def main():
