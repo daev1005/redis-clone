@@ -1,5 +1,6 @@
 import socket  # noqa: F401
 import threading
+import time
 
 ## Parses the command from the client input.
 def parse_command(data: bytes):
@@ -27,7 +28,9 @@ def parse_command(data: bytes):
         
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
+    #Stores key-value pairs
     store = {}
+    expiration_time = {}
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
@@ -44,16 +47,26 @@ def handle_client(client: socket.socket):
                 message += f"${len(msg)}\r\n{msg}\r\n"
             client.sendall(message.encode())
         elif "set" in elements[0].lower():
-            # Respond with OK
+            # Store the key-value pair in the store
             store[elements[1]] = elements[2]
+            if elements[3].lower() == "px":
+                expiration_time[elements[1]] = time.time() + int(elements[4])
+            # Respond with OK
             client.sendall(b"+OK\r\n")
 
         elif "get" in elements[0].lower():
+            # Retrieve the value for the given key
+            # If the key does not exist, respond with $-1
             if elements[1] not in store:
                 client.sendall(b"$-1\r\n")
-            msg = store[elements[1]]
-            message = f"${len(msg)}\r\n{msg}\r\n"
-            client.sendall(message.encode())
+            if time.time() < expiration_time[elements[1]]:
+                msg = store[elements[1]]
+                message = f"${len(msg)}\r\n{msg}\r\n"
+                client.sendall(message.encode())
+            else:
+                # If the key has expired, respond with $-1
+                client.sendall(b"$-1\r\n")
+            
 
 
 
