@@ -13,7 +13,8 @@ def main():
 
     while True:
         input = connection.recv(1024)
-        if input.decode().strip().lower == "ping":
+        if "ping" in input.decode().strip().lower():
+            # Respond with PONG
             connection.send("+PONG\r\n".encode())
     
 
