@@ -67,6 +67,7 @@ def handle_client(client: socket.socket):
             else:
                 # If the key has expired, respond with $-1
                 del store[elements[1]]
+                del expiration_time[elements[1]]
                 client.sendall(b"$-1\r\n")
             
 
