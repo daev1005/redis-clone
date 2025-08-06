@@ -11,7 +11,7 @@ def parse_command(data: bytes):
     elements = []
     index = 1
     for _ in range(num_elements):
-        if not lines[0].startswith("$"):
+        if not lines[index].startswith("$"):
             raise ValueError("Invalid element format")
         lengthOfElement = int(lines[index][1:])
         index += 1
@@ -19,7 +19,7 @@ def parse_command(data: bytes):
         if (lengthOfElement != len(element)):
             raise ValueError("Element length mismatch. Expected {lengthOfElement}, got {len(element)}")
         elements.append(element)
-        return elements
+    return elements
         
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -36,8 +36,8 @@ def handle_client(client: socket.socket):
             message = ""
             for i in range(1, len(elements)):
                 msg = elements[i]
-                message += message + "${len(msg)}\r\n{msg}\r\n"
-            client.sendall(f"{message}")
+                message += f"${len(msg)}\r\n{msg}\r\n"
+            client.sendall(message.encode())
 
 
 def main():
