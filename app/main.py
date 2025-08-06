@@ -17,8 +17,9 @@ def parse_command(data: bytes):
         index += 1
         element = lines[index]
         if (lengthOfElement != len(element)):
-            raise ValueError("Element length mismatch. Expected {lengthOfElement}, got {len(element)}")
+            raise ValueError(f"Element length mismatch. Expected {lengthOfElement}, got {len(element)}")
         elements.append(element)
+        index += 1
     return elements
         
 ##Takes in multiple clients and handles them concurrently
@@ -48,3 +49,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
