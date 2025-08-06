@@ -1,7 +1,7 @@
 import socket  # noqa: F401
 import threading
 
-## Parses the command from the client input. INCOMPLETE
+## Parses the command from the client input.
 def parse_command(data: bytes):
     input = data.decode()
     lines = input.split("\r\n")
@@ -14,31 +14,41 @@ def parse_command(data: bytes):
         if not lines[index].startswith("$"):
             raise ValueError("Invalid element format")
         lengthOfElement = int(lines[index][1:])
+        ##Index of the actual element
         index += 1
         element = lines[index]
         if (lengthOfElement != len(element)):
             raise ValueError(f"Element length mismatch. Expected {lengthOfElement}, got {len(element)}")
         elements.append(element)
+
+        ##Move to the next element
         index += 1
     return elements
         
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     while True:
-        #1024 is the bytesize of the input buffer
+        #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements = parse_command(input)
         if "ping" in elements[0].lower():
             # Respond with PONG
             client.sendall(b"+PONG\r\n")
 
-        ## does not work. Need to finish parser first
         elif "echo" in elements[0].lower():
             message = ""
+            # Respond with the expected message
             for i in range(1, len(elements)):
                 msg = elements[i]
                 message += f"${len(msg)}\r\n{msg}\r\n"
             client.sendall(message.encode())
+        elif "set" in elements[0].lower():
+            # Respond with OK
+            client.sendall(b"+OK\r\n")
+        elif "get" in elements[0].lower():
+            # Responds with the set message
+            msg = elements[1]
+            client.sendall(f"${len(msg)}\r\n{msg}\r\n")
 
 
 def main():
