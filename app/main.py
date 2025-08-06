@@ -65,7 +65,7 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode())
             else:
                 # If the key has expired, respond with $-1
-                client.sendall(b"$-1\r\n")
+                client.sendall(f"$-1\r\n")
             
 
 
