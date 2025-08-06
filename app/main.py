@@ -3,7 +3,7 @@ import threading
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
-    while chunk := client.recv(1024):
+    while chunk := client.recv(4096):
         if chunk == b"":
             break
             # Respond with PONG
