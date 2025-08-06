@@ -50,7 +50,7 @@ def handle_client(client: socket.socket):
             # Store the key-value pair in the store
             store[elements[1]] = elements[2]
             if elements[3].lower() == "px":
-                expiration_time[elements[1]] = time.time() + int(elements[4])
+                expiration_time[elements[1]] = time.time() + (int(elements[4]) / 1000.0)
             # Respond with OK
             client.sendall(b"+OK\r\n")
 
@@ -65,7 +65,8 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode())
             else:
                 # If the key has expired, respond with $-1
-                client.sendall(f"$-1\r\n")
+                del store[elements[1]]
+                client.sendall(b"$-1\r\n")
             
 
 
