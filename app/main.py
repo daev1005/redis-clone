@@ -35,7 +35,7 @@ def handle_client(client: socket.socket):
             # Respond with PONG
             client.sendall(b"+PONG\r\n")
 
-        elif "echo" or "get" in elements[0].lower():
+        elif "echo" in elements[0].lower():
             message = ""
             # Respond with the expected message
             for i in range(1, len(elements)):
@@ -45,6 +45,14 @@ def handle_client(client: socket.socket):
         elif "set" in elements[0].lower():
             # Respond with OK
             client.sendall(b"+OK\r\n")
+            
+        elif "get" in elements[0].lower():
+            message = ""
+            # Respond with the expected message
+            for i in range(1, len(elements)):
+                msg = elements[i]
+                message += f"${len(msg)}\r\n{msg}\r\n"
+            client.sendall(message.encode())
 
 
 def main():
