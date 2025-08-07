@@ -78,7 +78,9 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode()) 
         elif "rpush" in elements[0].lower():
             size = len(list)
-            client.sendall(f":{size}\r\n".encode())
+            list[size] = elements[2]
+            updated_size = len(list)
+            client.sendall(f":{updated_size}\r\n".encode())
             
 
 def main():
