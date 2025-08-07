@@ -81,6 +81,8 @@ def handle_client(client: socket.socket):
             for i in range(2, len(elements)):
                 
                 list.append(elements[i])
+            if elements[1] in lists:
+                list = lists[elements[1]] + list
             lists[elements[1]] = list
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
