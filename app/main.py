@@ -31,6 +31,7 @@ def handle_client(client: socket.socket):
     #Stores key-value pairs
     store = {}
     expiration_time = {}
+    list = {}
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
@@ -75,9 +76,10 @@ def handle_client(client: socket.socket):
                 msg = store[elements[1]]
                 message = f"${len(msg)}\r\n{msg}\r\n"
                 client.sendall(message.encode()) 
+        elif "rpush" in elements[0].lower():
+            size = len(list)
+            client.sendall(f":{size}\r\n".encode())
             
-
-
 
 def main():
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
