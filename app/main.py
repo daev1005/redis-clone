@@ -31,7 +31,7 @@ def handle_client(client: socket.socket):
     #Stores key-value pairs
     store = {}
     expiration_time = {}
-    list = []
+    lists = {}
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
@@ -77,15 +77,19 @@ def handle_client(client: socket.socket):
                 message = f"${len(msg)}\r\n{msg}\r\n"
                 client.sendall(message.encode()) 
         elif "rpush" in elements[0].lower():
+            list = []
             for i in range(2, len(elements)):
+                
                 list.append(elements[i])
-            size = len(list)
+            lists[elements[1]] = list
+            size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
+            list = lists.get(elements[1])
             first_index = int(elements[2])
             last_index = int(elements[3])
             message = ""
-            if len(list) == 0:
+            if elements[1] not in lists or len(list) == 0:
                 client.sendall(b"*-1\r\n")
             message += f"*{len(list[first_index:last_index + 1])}\r\n"    
             for item in list[first_index:last_index + 1]:
