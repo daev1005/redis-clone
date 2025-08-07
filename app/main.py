@@ -82,11 +82,13 @@ def handle_client(client: socket.socket):
             size = len(list)
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
+            first_index = int(elements[2])
+            last_index = int(elements[3])
             message = ""
             if len(list) == 0:
                 client.sendall(b"*-1\r\n")
-            message += f"*{len(list)}\r\n"    
-            for item in list:
+            message += f"*{len(list[first_index:last_index + 1])}\r\n"    
+            for item in list[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
             client.sendall(message.encode())    
             
