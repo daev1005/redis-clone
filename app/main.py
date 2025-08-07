@@ -78,7 +78,7 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode()) 
         elif "rpush" in elements[0].lower():
             size = len(list)
-            for i in range(2, len(elements)):
+            for i in range(2, len(elements) + 1):
                 list[size] = elements[i]
                 size += 1
             client.sendall(f":{size}\r\n".encode())
@@ -87,7 +87,7 @@ def handle_client(client: socket.socket):
             if len(list) == 0:
                 client.sendall(b"*-1\r\n")
             message += f"*{len(list)}\r\n"    
-            for i in range(len(list)):
+            for i in range(len(list) + 1):
                 msg = list[i]
                 message += f"${len(msg)}\r\n{msg}\r\n"
             client.sendall(message.encode())    
