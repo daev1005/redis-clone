@@ -90,7 +90,7 @@ def handle_client(client: socket.socket):
             last_index = int(elements[3])
             message = ""
             if elements[1] not in lists or len(list) == 0:
-                client.sendall(b"*-1\r\n")
+                client.sendall(b"*0\r\n")
             message += f"*{len(list[first_index:last_index + 1])}\r\n"    
             for item in list[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
