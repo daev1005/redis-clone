@@ -31,7 +31,7 @@ def handle_client(client: socket.socket):
     #Stores key-value pairs
     store = {}
     expiration_time = {}
-    list = {}
+    list = []
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
