@@ -25,13 +25,15 @@ def parse_command(data: bytes):
         ##Move to the next element
         index += 1
     return elements
-        
+
+blocked_clients = {}      
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     #Stores key-value pairs
     store = {}
     expiration_time = {}
     lists = {}
+    
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
@@ -86,6 +88,13 @@ def handle_client(client: socket.socket):
                 list = lists[elements[1]] + list
             lists[elements[1]] = list
             size = len(lists[elements[1]])
+            
+            if elements[1] in blocked_clients:
+                blocked_client = blocked_clients[elements[1]].pop(0)
+                item = lists[elements[1]].pop(0)
+                message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
+                blocked_client.sendall(message.encode())
+                
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
             list = lists.get(elements[1]) # Get the list for the given key
@@ -129,8 +138,9 @@ def handle_client(client: socket.socket):
                 size = len(lists[elements[1]])
                 client.sendall(f":{size}\r\n".encode())
         elif "lpop" in elements[0].lower():
+            list_name = elements[1]
             # If the list does not exist or is empty, respond with $-1
-            if elements[1] not in lists or len(lists[elements[1]]) == 0:
+            if list_name not in lists or len(lists[list_name]) == 0:
                 client.sendall(b"$-1\r\n")
             else:
                 # Removes and returns the first element of the list
@@ -138,12 +148,28 @@ def handle_client(client: socket.socket):
                     message = ""
                     message += f"*{elements[2]}\r\n"
                     for _ in range(int(elements[2])):
-                        item = lists[elements[1]].pop(0)
+                        item = lists[list_name].pop(0)
                         message += f"${len(item)}\r\n{item}\r\n"
                     client.sendall(message.encode())
                 else:
                     item = lists[elements[1]].pop(0)
                     client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
+        elif "blpop" in elements[0].lower():
+            list_name = elements[1]
+            timeout = int(elements[2])
+            current_time = time.time()
+            if time.time() - current_time >= timeout:
+                if list_name in lists and len(lists[list_name]) > 0:
+                    item = lists[list_name].pop(0)
+                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+                    client.sendall(message.encode())
+                else:
+                    if list_name not in blocked_clients:
+                        blocked_clients[list_name] = []
+                        blocked_clients[list_name].append(client)
+
+
+
             
 
 def main():
