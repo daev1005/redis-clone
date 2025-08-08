@@ -97,13 +97,13 @@ def handle_client(client: socket.socket):
 
             if first_index < 0:
                 new_first = len(list) + first_index
-                if new_first < 0:
-                    first_index = 0
+                while new_first < 0:
+                    new_first = len(list) + new_first
                 first_index = new_first
             if last_index < 0:
                 new_last = len(list) + last_index
-                if new_last < 0:
-                    last_index = 0
+                while new_last < 0:
+                    new_last = len(list) + new_last
                 last_index = new_last
 
             message += f"*{len(list[first_index:last_index + 1])}\r\n"    
