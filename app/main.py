@@ -122,6 +122,12 @@ def handle_client(client: socket.socket):
                 list = list + lists[elements[1]]
             lists[elements[1]] = list
             client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
+        elif "llen" in elements[0].lower():
+            if elements[1] not in lists:
+                client.sendall(b":0\r\n")
+            else:
+                size = len(lists[elements[1]])
+                client.sendall(f":{size}\r\n".encode())
             
 
 def main():
