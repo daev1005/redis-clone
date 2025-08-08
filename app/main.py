@@ -129,11 +129,18 @@ def handle_client(client: socket.socket):
                 size = len(lists[elements[1]])
                 client.sendall(f":{size}\r\n".encode())
         elif "lpop" in elements[0].lower():
+            # If the list does not exist or is empty, respond with $-1
             if elements[1] not in lists or len(lists[elements[1]]) == 0:
                 client.sendall(b"$-1\r\n")
             else:
-                item = lists[elements[1]].pop(0)
-                client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
+                # Removes and returns the first element of the list
+                if len(elements) > 2:
+                    for i in range(int(elements[2])):
+                        item = lists[elements[1]].pop(i)
+                        client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
+                else:
+                    item = lists[elements[1]].pop(0)
+                    client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
             
 
 def main():
