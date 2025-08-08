@@ -94,7 +94,7 @@ def handle_client(client: socket.socket):
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                 blocked_client.sendall(message.encode())
-                
+
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
             list = lists.get(elements[1]) # Get the list for the given key
@@ -157,16 +157,14 @@ def handle_client(client: socket.socket):
         elif "blpop" in elements[0].lower():
             list_name = elements[1]
             timeout = int(elements[2])
-            current_time = time.time()
-            if time.time() - current_time >= timeout:
-                if list_name in lists and len(lists[list_name]) > 0:
-                    item = lists[list_name].pop(0)
-                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-                    client.sendall(message.encode())
-                else:
-                    if list_name not in blocked_clients:
-                        blocked_clients[list_name] = []
-                        blocked_clients[list_name].append(client)
+            if list_name in lists and len(lists[list_name]) > 0:
+                item = lists[list_name].pop(0)
+                message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+                client.sendall(message.encode())
+            else:
+                if list_name not in blocked_clients:
+                    blocked_clients[list_name] = []
+                    blocked_clients[list_name].append(client)
 
 
 
