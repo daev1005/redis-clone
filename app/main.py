@@ -137,7 +137,7 @@ def handle_client(client: socket.socket):
                 if len(elements) > 2:
                     message = ""
                     message += f"*{elements[2]}\r\n"
-                    for i in range(int(elements[2])):
+                    for i in range(int(elements[2])-1):
                         item = lists[elements[1]].pop(i)
                         message += f"${len(item)}\r\n{item}\r\n"
                     client.sendall(message.encode())
