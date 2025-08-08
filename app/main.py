@@ -94,8 +94,6 @@ def handle_client(client: socket.socket):
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                 blocked_client.sendall(message.encode())
-            if len(blocked_clients[elements[1]]) == 0:
-                del blocked_clients[elements[1]]
 
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
