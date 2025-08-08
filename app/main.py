@@ -128,6 +128,12 @@ def handle_client(client: socket.socket):
             else:
                 size = len(lists[elements[1]])
                 client.sendall(f":{size}\r\n".encode())
+        elif "lpop" in elements[0].lower():
+            if elements[1] not in lists or len(lists[elements[1]]) == 0:
+                client.sendall(b"$-1\r\n")
+            else:
+                item = lists[elements[1]].pop(0)
+                client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
             
 
 def main():
