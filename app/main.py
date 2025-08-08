@@ -96,6 +96,7 @@ def handle_client(client: socket.socket):
                 client.sendall(b"*0\r\n")
                 return
             
+            # Handles negative indices. If indices exceed the size of the list, it sets them to 0
             if first_index < 0:
                 new_first = len(list) + first_index
                 if new_first < 0:
@@ -111,6 +112,13 @@ def handle_client(client: socket.socket):
             for item in list[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
             client.sendall(message.encode())    
+        elif "lpush" in elements[0].lower():
+            list = []
+            list.append(elements[2:])
+            if elements[1] in lists:
+                list = list + lists[elements[1]]
+            lists[elements[1]] = list
+            client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
             
 
 def main():
