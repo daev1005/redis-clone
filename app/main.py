@@ -165,6 +165,7 @@ def handle_client(client: socket.socket):
                 if list_name not in blocked_clients:
                     blocked_clients[list_name] = []
                 blocked_clients[list_name].append(client)
+                continue
 
 
 
