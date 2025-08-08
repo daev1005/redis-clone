@@ -79,6 +79,7 @@ def handle_client(client: socket.socket):
         elif "rpush" in elements[0].lower():
             # This list contains a key and a value of a list
             list = []
+            #Adds all elements after the list name to the list
             for i in range(2, len(elements)):
                 list.append(elements[i])
             if elements[1] in lists:
@@ -114,7 +115,8 @@ def handle_client(client: socket.socket):
             client.sendall(message.encode())    
         elif "lpush" in elements[0].lower():
             list = []
-            for i in range(2, len(elements)):
+            #Adds all elements after the list name to the list
+            for i in range(len(elements), 1, -1):
                 list.append(elements[i])
             if elements[1] in lists:
                 list = list + lists[elements[1]]
