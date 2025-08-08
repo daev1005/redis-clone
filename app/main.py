@@ -135,9 +135,12 @@ def handle_client(client: socket.socket):
             else:
                 # Removes and returns the first element of the list
                 if len(elements) > 2:
+                    message = ""
+                    message += f"*{elements[2]}\r\n"
                     for i in range(int(elements[2])):
                         item = lists[elements[1]].pop(i)
-                        client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
+                        message += f"${len(item)}\r\n{item}\r\n"
+                    client.sendall(message.encode())
                 else:
                     item = lists[elements[1]].pop(0)
                     client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
