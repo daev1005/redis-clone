@@ -116,7 +116,7 @@ def handle_client(client: socket.socket):
         elif "lpush" in elements[0].lower():
             list = []
             #Adds all elements after the list name to the list
-            for i in range(len(elements), 1, -1):
+            for i in range(len(elements)-1, 1, -1):
                 list.append(elements[i])
             if elements[1] in lists:
                 list = list + lists[elements[1]]
