@@ -114,7 +114,8 @@ def handle_client(client: socket.socket):
             client.sendall(message.encode())    
         elif "lpush" in elements[0].lower():
             list = []
-            list.append(elements[2:])
+            for i in range(2, len(elements)):
+                list.append(elements[i])
             if elements[1] in lists:
                 list = list + lists[elements[1]]
             lists[elements[1]] = list
