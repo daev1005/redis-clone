@@ -94,16 +94,17 @@ def handle_client(client: socket.socket):
             #Checks if the list exists or if it's empty
             if elements[1] not in lists or len(list) == 0:
                 client.sendall(b"*0\r\n")
-
+                return
+            
             if first_index < 0:
                 new_first = len(list) + first_index
-                while new_first < 0:
-                    new_first = len(list) + new_first
+                if new_first < 0:
+                    new_first = 0
                 first_index = new_first
             if last_index < 0:
                 new_last = len(list) + last_index
-                while new_last < 0:
-                    new_last = len(list) + new_last
+                if new_last < 0:
+                    new_last = 0
                 last_index = new_last
 
             message += f"*{len(list[first_index:last_index + 1])}\r\n"    
