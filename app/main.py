@@ -77,9 +77,9 @@ def handle_client(client: socket.socket):
                 message = f"${len(msg)}\r\n{msg}\r\n"
                 client.sendall(message.encode()) 
         elif "rpush" in elements[0].lower():
+            # This list contains a key and a value of a list
             list = []
             for i in range(2, len(elements)):
-                
                 list.append(elements[i])
             if elements[1] in lists:
                 list = lists[elements[1]] + list
@@ -87,12 +87,25 @@ def handle_client(client: socket.socket):
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
-            list = lists.get(elements[1])
+            list = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
             last_index = int(elements[3])
             message = ""
+            #Checks if the list exists or if it's empty
             if elements[1] not in lists or len(list) == 0:
                 client.sendall(b"*0\r\n")
+
+            if first_index < 0:
+                new_first = len(list) + first_index
+                if new_first < 0:
+                    first_index = 0
+                first_index = new_first
+            if last_index < 0:
+                new_last = len(list) + last_index
+                if new_last < 0:
+                    last_index = 0
+                last_index = new_last
+
             message += f"*{len(list[first_index:last_index + 1])}\r\n"    
             for item in list[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
