@@ -26,8 +26,8 @@ def parse_command(data: bytes):
         index += 1
     return elements
 
-blocked_clients = {}    
-lists = {}  
+blocked_clients = []    
+lists = []  
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     #Stores key-value pairs
