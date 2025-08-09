@@ -26,13 +26,13 @@ def parse_command(data: bytes):
         index += 1
     return elements
 
-blocked_clients = {}      
+blocked_clients = {}    
+lists = {}  
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     #Stores key-value pairs
     store = {}
     expiration_time = {}
-    lists = {}
     
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
@@ -90,8 +90,8 @@ def handle_client(client: socket.socket):
                 lists[elements[1]] = list
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
-            if elements[1] in blocked_clients:
-                blocked_client = blocked_clients[elements[1]].pop(1)
+            if elements[1] in blocked_clients and len(blocked_clients[elements[1]]) > 0:
+                blocked_client = blocked_clients[elements[1]].pop(0)
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                 blocked_client.sendall(message.encode())
