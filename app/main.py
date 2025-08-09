@@ -86,9 +86,10 @@ def handle_client(client: socket.socket):
                 list.append(elements[i])
             if elements[1] in lists:
                 list = lists[elements[1]] + list
-            lists[elements[1]] = list
+            else:
+                lists[elements[1]] = list
             size = len(lists[elements[1]])
-            
+            client.sendall(f":{size}\r\n".encode())
             if elements[1] in blocked_clients and len(blocked_clients[elements[1]]) > 0:
                 blocked_client = blocked_clients[elements[1]].pop(0)
                 item = lists[elements[1]].pop(0)
@@ -96,9 +97,6 @@ def handle_client(client: socket.socket):
                 blocked_client.sendall(message.encode())
                 if len(blocked_clients[elements[1]]) == 0:
                     del blocked_clients[elements[1]]
-            
-
-            client.sendall(f":{size}\r\n".encode())
         elif "lrange" in elements[0].lower():
             list = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
