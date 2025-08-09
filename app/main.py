@@ -179,8 +179,7 @@ def handle_client(client: socket.socket):
                     client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
         elif "blpop"== cmd:
             list_name = elements[1]
-            timeout = int(elements[2])
-            event = threading.Event()
+            timeout = float(elements[2])
             if list_name in lists and lists[list_name]:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
