@@ -188,7 +188,7 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode())
             else:
                 event.wait(timeout)
-                blocked_clients[list_name].append(client, event)
+                blocked_clients[list_name].append((client, event))
                 
 
 
