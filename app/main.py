@@ -100,13 +100,23 @@ def handle_client(client: socket.socket):
             client.sendall(f":{size}\r\n".encode())
 
             
-            if elements[1] in blocked_clients:
-                list = blocked_clients[elements[1]]
-                oldest_client = list.pop(0)
+            # if elements[1] in blocked_clients:
+            #     list = blocked_clients[elements[1]]
+            #     oldest_client = list.pop(0)
+            #     item = lists[elements[1]].pop(0)
+            #     message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
+            #     oldest_client.sendall(message.encode())
+            #     if len(list) == 0:
+            #         del blocked_clients[elements[1]]
+
+            if elements[1] in blocked_clients and blocked_clients[elements[1]]:
+                blocked_client, event = blocked_clients[elements[1]].pop(0)
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
-                oldest_client.sendall(message.encode())
-                if len(list) == 0:
+                blocked_client.sendall(message.encode())
+                event.set()  # Wake up the waiting handler thread
+                
+                if not blocked_clients[elements[1]]:
                     del blocked_clients[elements[1]]
 
 
@@ -185,13 +195,36 @@ def handle_client(client: socket.socket):
             list_name = elements[1]
             timeout = int(elements[2])
             event = threading.Event()
+            # if list_name in lists and lists[list_name]:
+            #     item = lists[list_name].pop(0)
+            #     message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+            #     client.sendall(message.encode())
+            # else:
+            #     blocked_clients[list_name] = []
+            #     blocked_clients[list_name].append(client)
+
+    
+
             if list_name in lists and lists[list_name]:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
-                blocked_clients[list_name] = []
-                blocked_clients[list_name].append(client)
+                if list_name not in blocked_clients:
+                    blocked_clients[list_name] = []
+                blocked_clients[list_name].append((client, event))
+                
+                # Block the current handler/thread until event is set or timeout expires
+                event.wait(timeout if timeout > 0 else None)
+                
+                # After wake up, check if item is available to send or timeout occurred
+                if list_name in lists and lists[list_name]:
+                    item = lists[list_name].pop(0)
+                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+                    client.sendall(message.encode())
+                else:
+                    # Timeout happened, send nil response
+                    client.sendall(b"$-1\r\n")
                 
 
 
