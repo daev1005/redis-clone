@@ -82,14 +82,6 @@ def handle_client(client: socket.socket):
                 msg = store[elements[1]]
                 message = f"${len(msg)}\r\n{msg}\r\n"
                 client.sendall(message.encode()) 
-
-
-
-
-
-
-
-
         elif "rpush" == cmd:
             # This list contains a key and a value of a list
             list = []
@@ -112,13 +104,7 @@ def handle_client(client: socket.socket):
                     oldest_client.sendall(message.encode())
                     event.set()
                     if not blocked_clients[elements[1]]:
-                        del blocked_clients[elements[1]]
-                    
-
-
-
-
-                
+                        del blocked_clients[elements[1]]   
         elif "lrange" == cmd:
             list = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
@@ -192,6 +178,11 @@ def handle_client(client: socket.socket):
                 if not event.wait(timeout if timeout > 0 else None):
                     # Timeout expired without push event
                     client.sendall(b"$-1\r\n")
+        elif "type" == cmd:
+            if store[elements[1]]:
+                client.sendall(f"+{elements[2]}\r\n".encode())
+            else:
+                client.sendall(b"+none\r\n")
                         
 
 
