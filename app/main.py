@@ -179,7 +179,7 @@ def handle_client(client: socket.socket):
                     # Timeout expired without push event
                     client.sendall(b"$-1\r\n")
         elif "type" == cmd:
-            if store[elements[1]]:
+            if elements[1] in store:
                 value = store[elements[1]]
                 client.sendall(f"+string\r\n".encode())
             else:
