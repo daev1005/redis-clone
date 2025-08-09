@@ -1,8 +1,9 @@
 import socket  # noqa: F401
 import threading
 import time
+from collections import defaultdict
 
-blocked_clients = {} 
+blocked_clients = defaultdict(list)
 lists = {}  
 
 #Stores key-value pairs
@@ -113,16 +114,15 @@ def handle_client(client: socket.socket):
             #     if len(list) == 0:
             #         del blocked_clients[elements[1]]
 
-            if elements[1] in blocked_clients and blocked_clients[elements[1]]:
-                blocked_client, event = blocked_clients[elements[1]].pop(0)
-                item = lists[elements[1]].pop(0)
-                message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
-                blocked_client.sendall(message.encode())
-                event.set()  # Wake up the waiting handler thread
-                
-                if not blocked_clients[elements[1]]:
-                    del blocked_clients[elements[1]]
-
+            if blocked_clients[elements[1]]:
+                oldest_client = blocked_clients[elements[1]].pop(0)
+                if lists[elements[1]]:
+                    item = lists[elements[1]].pop(0)
+                    message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
+                    try:
+                        oldest_client.sendall(message.encode())
+                    except:
+                        pass
 
 
 
@@ -198,37 +198,12 @@ def handle_client(client: socket.socket):
         elif "blpop" in elements[0].lower():
             list_name = elements[1]
             timeout = int(elements[2])
-            event = threading.Event()
-            # if list_name in lists and lists[list_name]:
-            #     item = lists[list_name].pop(0)
-            #     message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-            #     client.sendall(message.encode())
-            # else:
-            #     blocked_clients[list_name] = []
-            #     blocked_clients[list_name].append(client)
-
-    
-
             if list_name in lists and lists[list_name]:
-                # Immediate response if item available
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
-                # Block client if no items
-                if list_name not in blocked_clients:
-                    blocked_clients[list_name] = []
-                blocked_clients[list_name].append((client, event))
-
-                # Wait indefinitely if timeout=0
-                event_set = event.wait(timeout if timeout > 0 else None)
-
-                if event_set:
-                    # RPUSH already sent response
-                    return
-                else:
-                    # Timeout expired without item
-                    client.sendall(b"$-1\r\n")
+                blocked_clients[list_name].append(client)
                 
 
 
