@@ -110,7 +110,6 @@ def handle_client(client: socket.socket):
                     item = lists[elements[1]].pop(0)
                     message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                     oldest_client.sendall(message.encode())
-                    event.set()
 
                     if not blocked_clients[elements[1]]:
                         del blocked_clients[elements[1]]
@@ -181,16 +180,12 @@ def handle_client(client: socket.socket):
         elif "blpop"== cmd:
             list_name = elements[1]
             timeout = float(elements[2])
-            event = threading.Event()
             if list_name in lists and lists[list_name]:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
-                blocked_clients[list_name].append((client, event))
-                event.wait(timeout if timeout > 0 else None)
-                if event.is_set():
-                    return
+                blocked_clients[list_name].append(client)
                 
 
 
