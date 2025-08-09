@@ -20,7 +20,20 @@ def parse_command(data: bytes):
     lines = input.split("\r\n")
     if not lines[0].startswith("*"):
         raise ValueError("Invalid command format")
-    num_elements = int(lines[0][1:])
+
+    try:
+        num_elements = int(lines[0][1:])
+    except ValueError:
+        raise ValueError("Invalid number of elements")
+
+    # Check if we have enough lines for all elements ($len + data) pairs
+    expected_lines = 1 + num_elements * 2
+    if len(lines) < expected_lines:
+        # incomplete command, wait for more data
+        return None
+
+
+
     elements = []
     index = 1
     for _ in range(num_elements):
