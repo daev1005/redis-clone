@@ -214,16 +214,16 @@ def handle_client(client: socket.socket):
                         client.sendall(f"+string\r\n".encode())
                 else:
                     client.sendall(b"+none\r\n")
-            elif "xadd" == cmd:
-                stream_name = elements[1]
-                entry_id = elements[2]
-                values = elements[3:]
-                if stream_name not in store:
-                    store[stream_name] = []
-                    store[stream_name].append((entry_id, values))
-                else:
-                    store[stream_name].append((entry_id, values))
-                client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
+            # elif "xadd" == cmd:
+            #     stream_name = elements[1]
+            #     entry_id = elements[2]
+            #     values = elements[3:]
+            #     if stream_name not in store:
+            #         store[stream_name] = []
+            #         store[stream_name].append((entry_id, values))
+            #     else:
+            #         store[stream_name].append((entry_id, values))
+            #     client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
                         
 
 
