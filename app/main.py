@@ -2,6 +2,14 @@ import socket  # noqa: F401
 import threading
 import time
 
+blocked_clients = {} 
+lists = {}  
+
+#Stores key-value pairs
+store = {}
+expiration_time = {}
+
+
 ## Parses the command from the client input.
 def parse_command(data: bytes):
     input = data.decode()
@@ -26,13 +34,9 @@ def parse_command(data: bytes):
         index += 1
     return elements
 
-blocked_clients = {} 
-lists = {}  
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
-    #Stores key-value pairs
-    store = {}
-    expiration_time = {}
+    
     
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
@@ -206,20 +210,24 @@ def handle_client(client: socket.socket):
     
 
             if list_name in lists and lists[list_name]:
+                # Immediate response if item available
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
+                # Block client if no items
                 if list_name not in blocked_clients:
                     blocked_clients[list_name] = []
                 blocked_clients[list_name].append((client, event))
 
+                # Wait indefinitely if timeout=0
                 event_set = event.wait(timeout if timeout > 0 else None)
+
                 if event_set:
-                    # RPUSH already sent the response; just return here.
+                    # RPUSH already sent response
                     return
                 else:
-                    # Timeout, no data received
+                    # Timeout expired without item
                     client.sendall(b"$-1\r\n")
                 
 
