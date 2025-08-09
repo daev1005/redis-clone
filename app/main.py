@@ -181,7 +181,7 @@ def handle_client(client: socket.socket):
         elif "type" == cmd:
             if elements[1] in store:
                 value = store[elements[1]]
-                if isinstance(value, tuple):
+                if isinstance(value, list) and value and isinstance(value[0], tuple):
                     client.sendall(b"+stream\r\n")
                 else:
                     client.sendall(f"+string\r\n".encode())
