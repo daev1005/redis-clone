@@ -85,18 +85,17 @@ def handle_client(client: socket.socket):
             for i in range(2, len(elements)):
                 list.append(elements[i])
             if elements[1] in lists:
-                list = lists[elements[1]] + list
+                lists[elements[1]].extend(list)
             else:
                 lists[elements[1]] = list
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
-            if elements[1] in blocked_clients and len(blocked_clients[elements[1]]) > 0:
-                blocked_client = blocked_clients[elements[1]].pop(0)
-                item = lists[elements[1]].pop(0)
-                message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
-                blocked_client.sendall(message.encode())
-                if len(blocked_clients[elements[1]]) == 0:
+            if elements[1] in blocked_clients and blocked_clients[elements[1]]:
+                blocked_client, event = blocked_clients[elements[1]].pop(0)
+                event.set()
+                if not blocked_clients[elements[1]]:
                     del blocked_clients[elements[1]]
+                
         elif "lrange" in elements[0].lower():
             list = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
@@ -158,6 +157,7 @@ def handle_client(client: socket.socket):
         elif "blpop" in elements[0].lower():
             list_name = elements[1]
             timeout = int(elements[2])
+            event = threading.Event()
             if list_name in lists and len(lists[list_name]) > 0:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
@@ -165,7 +165,18 @@ def handle_client(client: socket.socket):
             else:
                 if list_name not in blocked_clients:
                     blocked_clients[list_name] = []
-                blocked_clients[list_name].append(client)
+                blocked_clients[list_name].append((client, event))
+                event.wait(timeout if timeout > 0 else None)
+
+                if list_name in lists and len(lists[list_name]) > 0:
+                    item = lists[list_name].pop(0)
+                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+                    client.sendall(message.encode())
+
+                if elements[1] in blocked_clients:
+                    blocked_clients[elements[1]] = [bc for bc in blocked_clients[elements[1]] if bc[0] != client]
+                    if not blocked_clients[elements[1]]:
+                        del blocked_clients[elements[1]]
 
 
 
