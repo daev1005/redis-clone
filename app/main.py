@@ -105,12 +105,12 @@ def handle_client(client: socket.socket):
             
             # If there are any blocked clients for this list, unblock the oldest one and send them the first item
             if blocked_clients[elements[1]]:
-                oldest_client = blocked_clients[elements[1]].pop(0)
+                oldest_client, event = blocked_clients[elements[1]].pop(0)
                 if lists[elements[1]]:
                     item = lists[elements[1]].pop(0)
                     message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                     oldest_client.sendall(message.encode())
-
+                    event.set()
                     if not blocked_clients[elements[1]]:
                         del blocked_clients[elements[1]]
                     
@@ -180,13 +180,19 @@ def handle_client(client: socket.socket):
         elif "blpop"== cmd:
             list_name = elements[1]
             timeout = float(elements[2])
+            event = threading.Event()
             if list_name in lists and lists[list_name]:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
-                blocked_clients[list_name].append(client)
-                
+                if list_name not in blocked_clients:
+                    blocked_clients[list_name] = []
+                blocked_clients[list_name].append((client, event))
+                if not event.wait(timeout if timeout > 0 else None):
+                    # Timeout expired without push event
+                    client.sendall(b"$-1\r\n")
+                        
 
 
 
