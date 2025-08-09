@@ -118,10 +118,8 @@ def handle_client(client: socket.socket):
                 if lists[elements[1]]:
                     item = lists[elements[1]].pop(0)
                     message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
-                    try:
-                        oldest_client.sendall(message.encode())
-                    except:
-                        pass
+                    oldest_client.sendall(message.encode())
+                    
 
 
 
