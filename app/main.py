@@ -185,12 +185,11 @@ def handle_client(client: socket.socket):
             list_name = elements[1]
             timeout = int(elements[2])
             event = threading.Event()
-            if list_name in list and list[list_name]:
+            if list_name in lists and lists[list_name]:
                 item = lists[list_name].pop(0)
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
-                lists[list_name] = []
                 blocked_clients[list_name] = []
                 blocked_clients[list_name].append(client)
                 
