@@ -91,7 +91,7 @@ def handle_client(client: socket.socket):
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
             if elements[1] in blocked_clients:
-                blocked_client = blocked_clients[elements[1]].pop(0)
+                blocked_client = blocked_clients[elements[1]].pop(1)
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                 blocked_client.sendall(message.encode())
