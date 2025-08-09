@@ -181,9 +181,22 @@ def handle_client(client: socket.socket):
         elif "type" == cmd:
             if elements[1] in store:
                 value = store[elements[1]]
-                client.sendall(f"+string\r\n".encode())
+                if isinstance(value, list) and value and isinstance(value[0], tuple):
+                    client.sendall(f"+stream\r\n".encode())
+                else :
+                    client.sendall(f"+string\r\n".encode())
             else:
                 client.sendall(b"+none\r\n")
+        elif "xadd" == cmd:
+            stream_name = elements[1]
+            entry_id = elements[2]
+            values = elements[3:]
+            if stream_name not in store:
+                store[stream_name] = []
+                store.append((entry_id, values))
+            else:
+                store[stream_name].append((entry_id, values))
+            client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
                         
 
 
