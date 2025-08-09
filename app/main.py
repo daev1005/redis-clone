@@ -173,7 +173,7 @@ def handle_client(client: socket.socket):
             list_name = elements[1]
             # If the list does not exist or is empty, respond with $-1
             if list_name not in lists or len(lists[list_name]) == 0:
-                client.sendall(b"$-1\r\n")
+                client.sendall(b"*0\r\n")
             else:
                 # Removes and returns the first element of the list
                 if len(elements) > 2:
