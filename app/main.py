@@ -181,7 +181,7 @@ def handle_client(client: socket.socket):
         elif "type" == cmd:
             if store[elements[1]]:
                 value = store[elements[1]]
-                client.sendall(f"+{value}\r\n".encode())
+                client.sendall(f"+string\r\n".encode())
             else:
                 client.sendall(b"+none\r\n")
                         
