@@ -193,7 +193,7 @@ def handle_client(client: socket.socket):
             values = elements[3:]
             if stream_name not in store:
                 store[stream_name] = []
-                store.append((entry_id, values))
+                store[stream_name].append((entry_id, values))
             else:
                 store[stream_name].append((entry_id, values))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
