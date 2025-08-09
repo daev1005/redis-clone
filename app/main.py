@@ -101,9 +101,13 @@ def handle_client(client: socket.socket):
 
             
             if elements[1] in blocked_clients:
-                event = blocked_clients[elements[1]]
-                if lists[elements[1]]:
-                    event.set()
+                list = blocked_clients[elements[1]]
+                oldest_client = list.pop(0)
+                item = lists[elements[1]].pop(0)
+                message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
+                oldest_client.sendall(message.encode())
+                if len(list) == 0:
+                    del blocked_clients[elements[1]]
 
 
 
@@ -187,16 +191,8 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode())
             else:
                 blocked_clients[list_name] = []
-                blocked_clients[list_name].append(event)
-                event.wait(timeout)
-                if event.is_set():
-                    if list_name in lists and lists[list_name]:
-                        item = lists[list_name].pop(0)
-                        blocked_client = blocked_clients[list_name].pop(0)
-                        message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-                        blocked_client.sendall(message.encode())
-                    else:
-                        client.sendall(b"$-1\r\n")
+                blocked_clients[list_name].append(client)
+                
 
 
 
