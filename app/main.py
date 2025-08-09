@@ -37,24 +37,23 @@ def parse_command(data: bytes):
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
-    
-    
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements = parse_command(input)
-        if "ping" in elements[0].lower():
+        cmd = elements[0].lower()
+        if "ping" == cmd:
             # Respond with PONG
             client.sendall(b"+PONG\r\n")
 
-        elif "echo" in elements[0].lower():
+        elif "echo" == cmd:
             message = ""
             # Respond with the expected message
             for i in range(1, len(elements)):
                 msg = elements[i]
                 message += f"${len(msg)}\r\n{msg}\r\n"
             client.sendall(message.encode())
-        elif "set" in elements[0].lower():
+        elif "set" == cmd:
             # Store the key-value pair in the store
             store[elements[1]] = elements[2]
             if len(elements) > 3:
@@ -63,7 +62,7 @@ def handle_client(client: socket.socket):
             # Respond with OK
             client.sendall(b"+OK\r\n")
 
-        elif "get" in elements[0].lower():
+        elif "get" == cmd:
             # Retrieve the value for the given key
             # If the key does not exist, respond with $-1
             if elements[1] not in store:
@@ -91,7 +90,7 @@ def handle_client(client: socket.socket):
 
 
 
-        elif "rpush" in elements[0].lower():
+        elif "rpush" == cmd:
             # This list contains a key and a value of a list
             list = []
             #Adds all elements after the list name to the list
@@ -128,7 +127,7 @@ def handle_client(client: socket.socket):
 
 
                 
-        elif "lrange" in elements[0].lower():
+        elif "lrange" == cmd:
             list = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
             last_index = int(elements[3])
@@ -154,7 +153,7 @@ def handle_client(client: socket.socket):
             for item in list[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
             client.sendall(message.encode())    
-        elif "lpush" in elements[0].lower():
+        elif "lpush" == cmd:
             list = []
             #Adds all elements after the list name to the list
             for i in range(len(elements)-1, 1, -1):
@@ -163,17 +162,17 @@ def handle_client(client: socket.socket):
                 list = list + lists[elements[1]]
             lists[elements[1]] = list
             client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
-        elif "llen" in elements[0].lower():
+        elif "llen" == cmd:
             if elements[1] not in lists:
                 client.sendall(b":0\r\n")
             else:
                 size = len(lists[elements[1]])
                 client.sendall(f":{size}\r\n".encode())
-        elif "lpop" in elements[0].lower():
+        elif "lpop" == cmd:
             list_name = elements[1]
             # If the list does not exist or is empty, respond with $-1
             if list_name not in lists or len(lists[list_name]) == 0:
-                client.sendall(b"*0\r\n")
+                client.sendall(b"-1\r\n")
             else:
                 # Removes and returns the first element of the list
                 if len(elements) > 2:
@@ -186,16 +185,7 @@ def handle_client(client: socket.socket):
                 else:
                     item = lists[elements[1]].pop(0)
                     client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
-
-
-
-
-
-
-
-
-
-        elif "blpop" in elements[0].lower():
+        elif "blpop"== cmd:
             list_name = elements[1]
             timeout = int(elements[2])
             if list_name in lists and lists[list_name]:
