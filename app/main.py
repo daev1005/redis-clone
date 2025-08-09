@@ -84,12 +84,12 @@ def handle_client(client: socket.socket):
                 client.sendall(message.encode()) 
         elif "rpush" == cmd:
             # This list contains a key and a value of a list
-            list = []
+            values = []
             #Adds all elements after the list name to the list
             for i in range(2, len(elements)):
-                list.append(elements[i])
+                values.append(elements[i])
             if elements[1] in lists:
-                lists[elements[1]].extend(list)
+                lists[elements[1]].extend(values)
             else:
                 lists[elements[1]] = list
             size = len(lists[elements[1]])
@@ -106,39 +106,39 @@ def handle_client(client: socket.socket):
                     if not blocked_clients[elements[1]]:
                         del blocked_clients[elements[1]]   
         elif "lrange" == cmd:
-            list = lists.get(elements[1]) # Get the list for the given key
+            values = lists.get(elements[1]) # Get the list for the given key
             first_index = int(elements[2])
             last_index = int(elements[3])
             message = ""
             #Checks if the list exists or if it's empty
-            if elements[1] not in lists or len(list) == 0:
+            if elements[1] not in lists or len(values) == 0:
                 client.sendall(b"*0\r\n")
                 return
             
             # Handles negative indices. If indices exceed the size of the list, it sets them to 0
             if first_index < 0:
-                new_first = len(list) + first_index
+                new_first = len(values) + first_index
                 if new_first < 0:
                     new_first = 0
                 first_index = new_first
             if last_index < 0:
-                new_last = len(list) + last_index
+                new_last = len(values) + last_index
                 if new_last < 0:
                     new_last = 0
                 last_index = new_last
 
-            message += f"*{len(list[first_index:last_index + 1])}\r\n"    
-            for item in list[first_index:last_index + 1]:
+            message += f"*{len(values[first_index:last_index + 1])}\r\n"    
+            for item in values[first_index:last_index + 1]:
                 message += f"${len(item)}\r\n{item}\r\n"
             client.sendall(message.encode())    
         elif "lpush" == cmd:
-            list = []
+            values = []
             #Adds all elements after the list name to the list
             for i in range(len(elements)-1, 1, -1):
-                list.append(elements[i])
+                values.append(elements[i])
             if elements[1] in lists:
-                list = list + lists[elements[1]]
-            lists[elements[1]] = list
+                values = values + lists[elements[1]]
+            lists[elements[1]] = values
             client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
         elif "llen" == cmd:
             if elements[1] not in lists:
