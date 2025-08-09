@@ -190,6 +190,7 @@ def handle_client(client: socket.socket):
                 message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
                 client.sendall(message.encode())
             else:
+                lists[list_name] = []
                 blocked_clients[list_name] = []
                 blocked_clients[list_name].append(client)
                 
