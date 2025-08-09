@@ -26,8 +26,8 @@ def parse_command(data: bytes):
         index += 1
     return elements
 
-blocked_clients = []    
-lists = []  
+blocked_clients = {} 
+lists = {}  
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     #Stores key-value pairs
@@ -213,17 +213,13 @@ def handle_client(client: socket.socket):
                 if list_name not in blocked_clients:
                     blocked_clients[list_name] = []
                 blocked_clients[list_name].append((client, event))
-                
-                # Block the current handler/thread until event is set or timeout expires
-                event.wait(timeout if timeout > 0 else None)
-                
-                # After wake up, check if item is available to send or timeout occurred
-                if list_name in lists and lists[list_name]:
-                    item = lists[list_name].pop(0)
-                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-                    client.sendall(message.encode())
+
+                event_set = event.wait(timeout if timeout > 0 else None)
+                if event_set:
+                    # RPUSH already sent the response; just return here.
+                    return
                 else:
-                    # Timeout happened, send nil response
+                    # Timeout, no data received
                     client.sendall(b"$-1\r\n")
                 
 
