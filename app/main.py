@@ -192,9 +192,9 @@ def handle_client(client: socket.socket):
                 if event.is_set():
                     if list_name in lists and lists[list_name]:
                         item = lists[list_name].pop(0)
-                        blocked_clients[list_name].pop(0)
+                        blocked_client = blocked_clients[list_name].pop(0)
                         message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-                        client.sendall(message.encode())
+                        blocked_client.sendall(message.encode())
                     else:
                         client.sendall(b"$-1\r\n")
 
