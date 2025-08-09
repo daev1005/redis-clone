@@ -91,7 +91,7 @@ def handle_client(client: socket.socket):
             if elements[1] in lists:
                 lists[elements[1]].extend(values)
             else:
-                lists[elements[1]] = list
+                lists[elements[1]] = values
             size = len(lists[elements[1]])
             client.sendall(f":{size}\r\n".encode())
             
