@@ -191,7 +191,10 @@ def handle_client(client: socket.socket):
             stream_name = elements[1]
             entry_id = elements[2]
             field_value_pairs = elements[3:]
-            new_ms, new_seq = entry_id.split("-")
+            if entry_id == "*":
+                entry_id = f"{int(time.time() * 1000)}-*"
+            else:
+                new_ms, new_seq = entry_id.split("-")
             
             # When the stream does not exist, create it and add the entry
             if stream_name not in store:
