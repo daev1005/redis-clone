@@ -260,8 +260,9 @@ def handle_client(client: socket.socket):
                             inner += f"${len(entry)}\r\n{entry}\r\n"
                     else:
                         inner = "*0\r\n"
-                    count += 1
-                    messages += (f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}")
+                count += 1
+                messages += (f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}")
+
             final_result = f"*{count}\r\n{messages}"
             client.sendall(final_result.encode())        
                     
