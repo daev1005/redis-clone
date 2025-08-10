@@ -204,9 +204,6 @@ def handle_client(client: socket.socket):
                     entry_id = f"{new_ms}-1"
                 elif new_seq == "*":
                     entry_id = f"{new_ms}-0"
-
-
-                store[stream_name].append((entry_id, field_value_pairs))
             else: 
                 if store[stream_name]:
                     last_id = store[stream_name][-1][0]
