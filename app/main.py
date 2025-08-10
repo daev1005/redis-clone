@@ -239,9 +239,16 @@ def handle_client(client: socket.socket):
                 start_id = "0-0"
             if len(start_id.split("-")) != 2:
                 start_id = f"{start_id}-0"
-            if len(end_id.split("-")) != 2:
+
+
+            if end_id == "+":
+                # Use the maximum possible values for ms and seq
+                end_id = "18446744073709551615-18446744073709551615"
+            elif len(end_id.split("-")) != 2:
                 # default seq = max possible
                 end_id = f"{end_id}-18446744073709551615"
+            
+            
 
             end_ms, end_seq = map(int, end_id.split("-"))
             start_ms, start_seq = map(int, start_id.split("-"))
