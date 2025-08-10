@@ -245,8 +245,8 @@ def handle_client(client: socket.socket):
             
             start_ms, start_seq = map(int, start_id.split("-"))
             end_id = int(end_id.split("-")[0])
-         
-            messages = []
+            count = 0
+            messages = ""
             for i in range(len(store[stream_name])):
                 current_id = store[stream_name][i][0]
                 current_entries = store[stream_name][i][1]
@@ -259,9 +259,9 @@ def handle_client(client: socket.socket):
                             inner += f"${len(entry)}\r\n{entry}\r\n"
                     else:
                         inner = "*0\r\n"
-             
-                    messages.append(f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}")
-            final_result += f"*{len(messages)}\r\n" + "".join(messages)
+                    count += 1
+                    messages += (f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}")
+            final_result += f"*{len(messages)}\r\n{messages}"
             client.sendall(final_result.encode())        
                     
                     
