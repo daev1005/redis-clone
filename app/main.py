@@ -267,6 +267,27 @@ def handle_client(client: socket.socket):
                     message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
             final = f"*{count}\r\n{message}"
             client.sendall(final.encode())     
+        elif "xread" == cmd:
+            stream_name = elements[2]
+            entry_id = elements[3]
+            start_ms, start_seq = map(int, entry_id.split("-"))
+            count = 0
+            message = ""
+            for current_id, current_entries in store[stream_name] :
+                current_ms, current_seq = map(int, current_id.split("-"))
+                if (current_ms, current_seq) > (start_ms, start_seq):
+                    if current_entries:
+                        inner = f"*{len(current_entries)}\r\n"
+                        for entry in current_entries:
+                            inner += f"${len(entry)}\r\n{entry}\r\n"
+                    else:
+                        inner = "*0\r\n"
+                    count += 1
+                    message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+            final = f"*{count}\r\n{message}"
+            client.sendall(final.encode())  
+            
+                
                     
                     
                     
