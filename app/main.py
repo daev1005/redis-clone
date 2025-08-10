@@ -202,8 +202,7 @@ def handle_client(client: socket.socket):
                     if (new_ms < last_ms) or (new_ms == last_ms and new_seq <= last_seq):
                         client.sendall(b"-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n")
                         continue
-                else:
-                    if new_ms == 0 and new_seq == 0:
+                    elif new_ms == 0 and new_seq == 0:
                         client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
                         continue
             store[stream_name].append((entry_id, field_value_pairs))
