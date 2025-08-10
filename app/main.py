@@ -195,6 +195,15 @@ def handle_client(client: socket.socket):
                 store[stream_name] = []
                 store[stream_name].append((entry_id, field_value_pairs))
             else: 
+                if store[stream_name]:
+                    last_id = store[stream_name][-1][0]
+                    last_ms, last_seq = map(int, last_id.split("-"))
+                    new_ms, new_seq = map(int, entry_id.split("-"))
+                    if (new_ms < last_ms) or (new_ms == last_ms and new_seq <= last_seq):
+                        client.sendall(b"-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n")
+                else:
+                    if not entry_id > "0-0":
+                        client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
                 store[stream_name].append((entry_id, field_value_pairs))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
                 
