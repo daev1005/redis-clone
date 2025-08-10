@@ -208,6 +208,7 @@ def handle_client(client: socket.socket):
                     new_ms = int(new_ms)
                     if new_seq == "*":
                         new_seq = last_seq + 1
+                        entry_id = f"{new_ms}-{new_seq}"
                     else:
                         new_seq = int(new_seq)
                     if new_ms == 0 and new_seq == 0:
