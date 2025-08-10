@@ -247,6 +247,7 @@ def handle_client(client: socket.socket):
             final_result = ""
 
             for i in range(len(store[stream_name])):
+                current_id = store[stream_name][i][0]
                 current_entries = store[stream_name][i][1]
                 current_ms, current_seq = map(int, store[stream_name][i][0].split("-"))
                 message = ""
