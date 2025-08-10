@@ -242,16 +242,17 @@ def handle_client(client: socket.socket):
                 start_id = "0-0"
             if len(start_id.split("-")) != 2:
                 start_id = f"{start_id}-0"
-            
+            if len(end_id.split("-")) != 2:
+                # default seq = max possible
+                end_id = f"{end_id}-18446744073709551615"
+
+            end_ms, end_seq = map(int, end_id.split("-"))
             start_ms, start_seq = map(int, start_id.split("-"))
-            end_id = int(end_id.split("-")[0])
             count = 0
             messages = ""
-            for i in range(len(store[stream_name])):
-                current_id = store[stream_name][i][0]
-                current_entries = store[stream_name][i][1]
-                current_ms, current_seq = map(int, store[stream_name][i][0].split("-"))
-                if (current_ms >= start_ms and current_seq >= start_seq and current_ms <= end_id):
+            for current_id, current_entries in store[stream_name]:
+                current_ms, current_seq = map(int, current_id.split("-"))
+                if (current_ms, current_seq) >= (start_ms, start_seq) and (current_ms, current_seq) <= (end_ms, end_seq):
                     if current_entries:
                         inner = f"*{len(current_entries)}\r\n"
                         for j in range(len(current_entries)):
