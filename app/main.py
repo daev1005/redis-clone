@@ -249,22 +249,20 @@ def handle_client(client: socket.socket):
             end_ms, end_seq = map(int, end_id.split("-"))
             start_ms, start_seq = map(int, start_id.split("-"))
             count = 0
-            messages = ""
+            message = ""
             for current_id, current_entries in store[stream_name]:
                 current_ms, current_seq = map(int, current_id.split("-"))
                 if (current_ms, current_seq) >= (start_ms, start_seq) and (current_ms, current_seq) <= (end_ms, end_seq):
                     if current_entries:
                         inner = f"*{len(current_entries)}\r\n"
-                        for j in range(len(current_entries)):
-                            entry = current_entries[j]
+                        for entry in current_entries:
                             inner += f"${len(entry)}\r\n{entry}\r\n"
                     else:
                         inner = "*0\r\n"
-                count += 1
-                messages += (f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}")
-
-            final_result = f"*{count}\r\n{messages}"
-            client.sendall(final_result.encode())        
+                    count += 1
+                    message += f"*2\r\n{inner}"
+            final = f"*{count}\r\n{message}"
+            client.sendall(final.encode())     
                     
                     
                     
