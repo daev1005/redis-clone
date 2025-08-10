@@ -193,24 +193,36 @@ def handle_client(client: socket.socket):
             field_value_pairs = elements[3:]
             new_ms, new_seq = entry_id.split("-")
             
-            
+            # When the stream does not exist, create it and add the entry
             if stream_name not in store:
                 store[stream_name] = []
+
+                # Handle special cases for the entry ID
                 if new_ms == "0" and new_seq == "*":
                     entry_id = f"{new_ms}-1"
                 elif new_seq == "*":
                     entry_id = f"{new_ms}-0"
+
+
                 store[stream_name].append((entry_id, field_value_pairs))
             else: 
                 if store[stream_name]:
                     last_id = store[stream_name][-1][0]
                     last_ms, last_seq = map(int, last_id.split("-"))
                     new_ms = int(new_ms)
-                    if new_seq == "*":
+
+                    # When the ms is the same but different sequence number, increment the sequence number
+                    if last_ms == new_ms and new_seq == "*":
                         new_seq = last_seq + 1
+                        entry_id = f"{new_ms}-{new_seq}"
+                    # When ms is different but sequence number is "*", set sequence number to 0
+                    elif new_seq == "*":
+                        new_seq = 0
                         entry_id = f"{new_ms}-{new_seq}"
                     else:
                         new_seq = int(new_seq)
+
+
                     if new_ms == 0 and new_seq == 0:
                         client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
                         continue
