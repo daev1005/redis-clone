@@ -238,6 +238,8 @@ def handle_client(client: socket.socket):
             stream_name = elements[1]
             start_id = elements[2]
             end_id = elements[3]
+            if start_id == "-":
+                start_id = "0-0"
             if len(start_id.split("-")) != 2:
                 start_id = f"{start_id}-0"
             
