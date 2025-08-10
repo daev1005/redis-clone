@@ -195,16 +195,16 @@ def handle_client(client: socket.socket):
             
             if stream_name not in store:
                 store[stream_name] = []
-                if new_ms == "0" and new_seq == "*":
+                if str(new_ms) == "0" and str(new_seq) == "*":
                     entry_id = f"{new_ms}-1"
-                elif new_seq == "*":
+                elif str(new_seq) == "*":
                     entry_id = f"{new_ms}-0"
                 store[stream_name].append((entry_id, field_value_pairs))
             else: 
                 if store[stream_name]:
                     last_id = store[stream_name][-1][0]
                     last_ms, last_seq = map(int, last_id.split("-"))
-                    if new_seq == "*":
+                    if str(new_seq) == "*":
                         new_seq = last_seq + 1
                     if new_ms == 0 and new_seq == 0:
                         client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
