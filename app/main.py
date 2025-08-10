@@ -205,11 +205,11 @@ def handle_client(client: socket.socket):
                 if store[stream_name]:
                     last_id = store[stream_name][-1][0]
                     last_ms, last_seq = map(int, last_id.split("-"))
+                    new_ms = int(new_ms)
                     if new_seq == "*":
                         new_seq = last_seq + 1
                     else:
                         new_seq = int(new_seq)
-                        new_ms = int(new_ms)
                     if new_ms == 0 and new_seq == 0:
                         client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
                         continue
