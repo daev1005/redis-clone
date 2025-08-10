@@ -233,6 +233,39 @@ def handle_client(client: socket.socket):
                         continue
             store[stream_name].append((entry_id, field_value_pairs))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
+
+        elif "xrange" == cmd:
+            stream_name = elements[1]
+            start_id = elements[2]
+            end_id = elements[3]
+            if len(start_id.split("-")) != 2:
+                start_id = f"{start_id}-0"
+            
+            start_ms, start_seq = map(int, start_id.split("-"))
+            end_id = int(end_id)
+            outer_index = 0
+            final_result = ""
+
+            for i in range(len(store[stream_name])):
+                current_id = store[stream_name][i][0]
+                current_entries = store[stream_name][i][1]
+                current_ms, current_seq = map(int, store[stream_name][i][0].split("-"))
+                message = ""
+                if (current_ms >= start_ms and current_seq >= start_seq) or (current_id <= end_id):
+                    if current_entries:
+                        inner = f"*{len(current_entries)}\r\n"
+                        for j in range(len(current_entries)):
+                            entry = current_entries[j]
+                            inner += f"${len(entry)}\r\n{entry}\r\n"
+                    else:
+                        inner = "*0\r\n"
+                    outer_index += 1
+                    message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+            final_result += f"*{outer_index}\r\n{message}"
+            client.sendall(final_result.encode())        
+                    
+                    
+                    
                 
 
         
