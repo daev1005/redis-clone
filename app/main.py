@@ -206,7 +206,7 @@ def handle_client(client: socket.socket):
                     if new_ms == 0 and new_seq == 0:
                         client.sendall(b"-ERR The ID specified in XADD must be greater than 0-0\r\n")
                         return
-                store[stream_name].append((entry_id, field_value_pairs))
+            store[stream_name].append((entry_id, field_value_pairs))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
                 
 
