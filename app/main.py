@@ -245,12 +245,11 @@ def handle_client(client: socket.socket):
             end_id = int(end_id.split("-")[0])
             outer_index = 0
             final_result = ""
-
+            message = ""
             for i in range(len(store[stream_name])):
                 current_id = store[stream_name][i][0]
                 current_entries = store[stream_name][i][1]
                 current_ms, current_seq = map(int, store[stream_name][i][0].split("-"))
-                message = ""
                 if (current_ms >= start_ms and current_seq >= start_seq) or (current_ms <= end_id):
                     if current_entries:
                         inner = f"*{len(current_entries)}\r\n"
