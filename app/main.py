@@ -267,20 +267,27 @@ def handle_client(client: socket.socket):
             final = f"*{count}\r\n{message}"
             client.sendall(final.encode())     
         elif "xread" == cmd:
-            key_to_value = {}
-            start_index = 2
+            streams_start = 2
             blocked = False
-            if elements[2] == "block":
-                start_index = 4   
+            if elements[1].lower() == "block":
+                # XREAD BLOCK <timeout> STREAMS <stream1> <stream2> ... <id1> <id2> ...
+                timeout = int(elements[2])
+                # Streams keyword expected at elements[3]
+                if elements[3].lower() != "streams":
+                    client.sendall(b"-ERR syntax error\r\n")
+                # The streams start at index 4
+                streams_start = 4
                 blocked = True
-            length_of_elements = len(elements[start_index:])
-            num_of_streams = length_of_elements // 2
-            if  length_of_elements % 2 == 0:
-                stream_names = elements[start_index: start_index + num_of_streams]
-                entry_ids = elements[start_index + num_of_streams:]
-                key_to_value = dict(zip(stream_names, entry_ids))
             else:
-                client.sendall(b"-ERR The command has invalid amounts of elements\r\n")
+                if elements[1].lower() != "streams":
+                    client.sendall(b"-ERR syntax error\r\n")
+
+
+            num_streams = (len(elements) - streams_start) // 2
+            stream_names = elements[streams_start : streams_start + num_streams]
+            entry_ids = elements[streams_start + num_streams : ]
+            key_to_value = dict(zip(stream_names, entry_ids))
+                
 
 
             if blocked:
