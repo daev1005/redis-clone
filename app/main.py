@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 
 blocked_clients = defaultdict(list)
+blocked_streams = defaultdict(list)
 lists = {}  
 
 #Stores key-value pairs
@@ -231,6 +232,19 @@ def handle_client(client: socket.socket):
             store[stream_name].append((entry_id, field_value_pairs))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
 
+
+            if blocked_streams[stream_name]:
+                event = blocked_streams[stream_name].pop(0)
+                chunk = f"*{len(field_value_pairs)}\r\n"
+                for values in field_value_pairs:
+                    chunk += f"${len(values)}\r\{values}"    
+                message = f"*1\r\n*2\r\n${(len(stream_name))}\r\{stream_name}\r\n*1\r\n*2\r\n${len(entry_id)}\r\{entry_id}\r\n{chunk}"
+                client.sendall(message.encode())
+                event.set()
+                if not blocked_streams[stream_name]:
+                    del blocked_streams[stream_name]
+
+
         elif "xrange" == cmd:
             stream_name = elements[1]
             start_id = elements[2]
@@ -239,17 +253,12 @@ def handle_client(client: socket.socket):
                 start_id = "0-0"
             if len(start_id.split("-")) != 2:
                 start_id = f"{start_id}-0"
-
-
             if end_id == "+":
                 # Use the maximum possible values for ms and seq
                 end_id = "18446744073709551615-18446744073709551615"
             elif len(end_id.split("-")) != 2:
                 # default seq = max possible
                 end_id = f"{end_id}-18446744073709551615"
-            
-            
-
             end_ms, end_seq = map(int, end_id.split("-"))
             start_ms, start_seq = map(int, start_id.split("-"))
             count = 0
@@ -264,29 +273,31 @@ def handle_client(client: socket.socket):
             client.sendall(final.encode())     
         elif "xread" == cmd:
             key_to_value = {}
-            length_of_elements = len(elements[2:])
+            start_index = 2
+            blocked = False
+            if elements[2] == "block":
+                start_index = 4   
+                blocked = True
+            length_of_elements = len(elements[start_index:])
             num_of_streams = length_of_elements // 2
             if  length_of_elements % 2 == 0:
-                stream_names = elements[2: 2 + num_of_streams]
-                entry_ids = elements[2 + num_of_streams:]
+                stream_names = elements[start_index: start_index + num_of_streams]
+                entry_ids = elements[start_index + num_of_streams:]
                 key_to_value = dict(zip(stream_names, entry_ids))
             else:
                 client.sendall(b"-ERR The command has invalid amounts of elements\r\n")
 
-            final = f"*{len(key_to_value)}\r\n"
-            for stream_name in key_to_value:
-                entry_id = key_to_value[stream_name]
-                start_ms, start_seq = map(int, entry_id.split("-"))
-                count = 0
-                message = ""
-                for current_id, current_entries in store[stream_name] :
-                    current_ms, current_seq = map(int, current_id.split("-"))
-                    if (current_ms, current_seq) > (start_ms, start_seq):
-                        inner = get_entries(current_entries)
-                        count += 1
-                        message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
-                final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
-            client.sendall(final.encode())  
+
+            if blocked:
+                timeout = elements[3]
+                event = threading.Event()
+                blocked_streams[stream_name].append(event)
+                if not event.wait(timeout if timeout > 0 else None):
+                    client.sendall(b"$-1\r\n")
+
+
+            else:
+                get_read(key_to_value, client)
     
 def get_entries(current_entries: list):
     if current_entries:
@@ -296,6 +307,25 @@ def get_entries(current_entries: list):
         return inner
     else:
         return "*0\r\n"
+
+def get_read(key_to_value: dict, client: socket.socket):
+    final = f"*{len(key_to_value)}\r\n"
+    for stream_name in key_to_value:
+        entry_id = key_to_value[stream_name]
+        start_ms, start_seq = map(int, entry_id.split("-"))
+        count = 0
+        message = ""
+        for current_id, current_entries in store[stream_name] :
+            current_ms, current_seq = map(int, current_id.split("-"))
+            if (current_ms, current_seq) > (start_ms, start_seq):
+                inner = get_entries(current_entries)
+                count += 1
+                message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+        final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
+    client.sendall(final.encode())    
+
+
+
                         
             
                 
