@@ -270,8 +270,6 @@ def handle_client(client: socket.socket):
             streams_start = 2
             blocked = False
             if elements[1].lower() == "block":
-                # XREAD BLOCK <timeout> STREAMS <stream1> <stream2> ... <id1> <id2> ...
-                timeout = int(elements[2])
                 # Streams keyword expected at elements[3]
                 if elements[3].lower() != "streams":
                     client.sendall(b"-ERR syntax error\r\n")
@@ -291,7 +289,7 @@ def handle_client(client: socket.socket):
 
 
             if blocked:
-                timeout = int(elements[3]) / 1000
+                timeout = int(elements[2]) / 1000
                 event = threading.Event()
                 blocked_streams[stream_name].append((event, entry_ids[0]))
                 if not event.wait(timeout if timeout > 0 else None):
