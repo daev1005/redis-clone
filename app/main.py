@@ -257,35 +257,46 @@ def handle_client(client: socket.socket):
             for current_id, current_entries in store[stream_name]:
                 current_ms, current_seq = map(int, current_id.split("-"))
                 if (current_ms, current_seq) >= (start_ms, start_seq) and (current_ms, current_seq) <= (end_ms, end_seq):
-                    if current_entries:
-                        inner = f"*{len(current_entries)}\r\n"
-                        for entry in current_entries:
-                            inner += f"${len(entry)}\r\n{entry}\r\n"
-                    else:
-                        inner = "*0\r\n"
+                    inner = get_entries(current_entries)
                     count += 1
                     message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
             final = f"*{count}\r\n{message}"
             client.sendall(final.encode())     
         elif "xread" == cmd:
-            stream_name = elements[2]
-            entry_id = elements[3]
-            start_ms, start_seq = map(int, entry_id.split("-"))
-            count = 0
-            message = ""
-            for current_id, current_entries in store[stream_name] :
-                current_ms, current_seq = map(int, current_id.split("-"))
-                if (current_ms, current_seq) > (start_ms, start_seq):
-                    if current_entries:
-                        inner = f"*{len(current_entries)}\r\n"
-                        for entry in current_entries:
-                            inner += f"${len(entry)}\r\n{entry}\r\n"
-                    else:
-                        inner = "*0\r\n"
-                    count += 1
-                    message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
-            final = f"*{count}\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
+            key_to_value = {}
+            length_of_elements = len(elements[2:])
+            num_of_streams = length_of_elements // 2
+            if  num_of_streams % 2 == 0:
+                stream_names = elements[2: 2 + num_of_streams]
+                entry_ids = elements[2 + num_of_streams:]
+                key_to_value = dict(zip(stream_names, entry_ids))
+            else:
+                client.sendall(b"-ERR The command has invalid amounts of elements\r\n")
+
+            final = f"*{len(key_to_value)}\r\n"
+            for stream_name in key_to_value:
+                entry_id = key_to_value[stream_name]
+                start_ms, start_seq = map(int, entry_id.split("-"))
+                count = 0
+                message = ""
+                for current_id, current_entries in store[stream_name] :
+                    current_ms, current_seq = map(int, current_id.split("-"))
+                    if (current_ms, current_seq) > (start_ms, start_seq):
+                        inner = get_entries(current_entries)
+                        count += 1
+                        message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+                final += f"*{count}\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
             client.sendall(final.encode())  
+    
+def get_entries(current_entries: list):
+    if current_entries:
+        inner = f"*{len(current_entries)}\r\n"
+        for entry in current_entries:
+            inner += "${len(entry)}\r\n{entry}\r\n"
+        return inner
+    else:
+        return "*0\r\n"
+                        
             
                 
                     
