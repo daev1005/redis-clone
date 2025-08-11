@@ -191,7 +191,7 @@ def handle_client(client: socket.socket):
         elif "xadd" == cmd:
             stream_name = elements[1]
             entry_id = elements[2]
-            field_value_pairs = elements[3:]
+            entries = elements[3:]
             if entry_id == "*":
                 entry_id = f"{int(time.time() * 1000)}-*"
             new_ms, new_seq = entry_id.split("-")
@@ -229,18 +229,13 @@ def handle_client(client: socket.socket):
                     elif (new_ms < last_ms) or (new_ms == last_ms and new_seq <= last_seq):
                         client.sendall(b"-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n")
                         continue
-            store[stream_name].append((entry_id, field_value_pairs))
+            store[stream_name].append((entry_id, entries))
             client.sendall(f"${len(entry_id)}\r\n{entry_id}\r\n".encode())
 
 
             if blocked_streams[stream_name]:
-                blocked_client, event = blocked_streams[stream_name].pop(0)
-                chunk = f"*{len(field_value_pairs)}\r\n"
-                for values in field_value_pairs:
-                    chunk += f"${len(values)}\r\{values}"    
-                message = f"*1\r\n*2\r\n${(len(stream_name))}\r\{stream_name}\r\n*1\r\n*2\r\n${len(entry_id)}\r\{entry_id}\r\n{chunk}"
-                blocked_client.sendall(message.encode())
-                event.set()
+                event, start_id = blocked_streams[stream_name].pop(0)
+                unblock_stream(stream_name, start_id, entry_id, entries, client)
                 if not blocked_streams[stream_name]:
                     del blocked_streams[stream_name]
 
@@ -291,7 +286,7 @@ def handle_client(client: socket.socket):
             if blocked:
                 timeout = elements[3]
                 event = threading.Event()
-                blocked_streams[stream_name].append((client, event))
+                blocked_streams[stream_name].append((event, entry_ids[0]))
                 if not event.wait(timeout if timeout > 0 else None):
                     client.sendall(b"$-1\r\n")
 
@@ -313,16 +308,26 @@ def get_read(key_to_value: dict, client: socket.socket):
     for stream_name in key_to_value:
         entry_id = key_to_value[stream_name]
         start_ms, start_seq = map(int, entry_id.split("-"))
-        count = 0
+     
         message = ""
         for current_id, current_entries in store[stream_name] :
             current_ms, current_seq = map(int, current_id.split("-"))
             if (current_ms, current_seq) > (start_ms, start_seq):
                 inner = get_entries(current_entries)
-                count += 1
+                
                 message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
         final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
     client.sendall(final.encode())    
+
+def unblock_stream(stream_name, start_id, current_id, current_entries, client):
+    start_ms, start_seq = map(int, start_id.split("-"))
+    current_ms, current_seq = map(int, current_id.split("-"))
+    if (current_ms, current_seq) > (start_ms, start_seq):
+        entries = get_entries(current_entries)
+        id_and_entries = f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{entries}"
+        final = f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{id_and_entries}"
+        client.sendall(final.encode())
+        
 
 
 
