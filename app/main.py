@@ -266,7 +266,7 @@ def handle_client(client: socket.socket):
             key_to_value = {}
             length_of_elements = len(elements[2:])
             num_of_streams = length_of_elements // 2
-            if  num_of_streams % 2 == 0:
+            if  length_of_elements % 2 == 0:
                 stream_names = elements[2: 2 + num_of_streams]
                 entry_ids = elements[2 + num_of_streams:]
                 key_to_value = dict(zip(stream_names, entry_ids))
