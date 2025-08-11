@@ -292,7 +292,7 @@ def get_entries(current_entries: list):
     if current_entries:
         inner = f"*{len(current_entries)}\r\n"
         for entry in current_entries:
-            inner += "${len(entry)}\r\n{entry}\r\n"
+            inner += f"${len(entry)}\r\n{entry}\r\n"
         return inner
     else:
         return "*0\r\n"
