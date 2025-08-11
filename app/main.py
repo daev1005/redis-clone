@@ -285,7 +285,7 @@ def handle_client(client: socket.socket):
                         inner = get_entries(current_entries)
                         count += 1
                         message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
-                final += f"\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
+                final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
             client.sendall(final.encode())  
     
 def get_entries(current_entries: list):
