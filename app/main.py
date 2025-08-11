@@ -292,7 +292,20 @@ def handle_client(client: socket.socket):
 
 
             else:
-                get_read(key_to_value, client)
+                final = f"*{len(key_to_value)}\r\n"
+                for stream_name in key_to_value:
+                    entry_id = key_to_value[stream_name]
+                    start_ms, start_seq = map(int, entry_id.split("-"))
+                
+                    message = ""
+                    for current_id, current_entries in store[stream_name] :
+                        current_ms, current_seq = map(int, current_id.split("-"))
+                        if (current_ms, current_seq) > (start_ms, start_seq):
+                            inner = get_entries(current_entries)
+                            
+                            message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+                    final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
+                client.sendall(final.encode())
     
 def get_entries(current_entries: list):
     if current_entries:
@@ -302,22 +315,6 @@ def get_entries(current_entries: list):
         return inner
     else:
         return "*0\r\n"
-
-def get_read(key_to_value: dict, client: socket.socket):
-    final = f"*{len(key_to_value)}\r\n"
-    for stream_name in key_to_value:
-        entry_id = key_to_value[stream_name]
-        start_ms, start_seq = map(int, entry_id.split("-"))
-     
-        message = ""
-        for current_id, current_entries in store[stream_name] :
-            current_ms, current_seq = map(int, current_id.split("-"))
-            if (current_ms, current_seq) > (start_ms, start_seq):
-                inner = get_entries(current_entries)
-                
-                message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
-        final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
-    client.sendall(final.encode())    
 
 def unblock_stream(stream_name, start_id, current_id, current_entries, client):
     start_ms, start_seq = map(int, start_id.split("-"))
