@@ -234,12 +234,12 @@ def handle_client(client: socket.socket):
 
 
             if blocked_streams[stream_name]:
-                event = blocked_streams[stream_name].pop(0)
+                blocked_client, event = blocked_streams[stream_name].pop(0)
                 chunk = f"*{len(field_value_pairs)}\r\n"
                 for values in field_value_pairs:
                     chunk += f"${len(values)}\r\{values}"    
                 message = f"*1\r\n*2\r\n${(len(stream_name))}\r\{stream_name}\r\n*1\r\n*2\r\n${len(entry_id)}\r\{entry_id}\r\n{chunk}"
-                client.sendall(message.encode())
+                blocked_client.sendall(message.encode())
                 event.set()
                 if not blocked_streams[stream_name]:
                     del blocked_streams[stream_name]
@@ -291,7 +291,7 @@ def handle_client(client: socket.socket):
             if blocked:
                 timeout = elements[3]
                 event = threading.Event()
-                blocked_streams[stream_name].append(event)
+                blocked_streams[stream_name].append((client, event))
                 if not event.wait(timeout if timeout > 0 else None):
                     client.sendall(b"$-1\r\n")
 
