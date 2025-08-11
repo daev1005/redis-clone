@@ -327,7 +327,7 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
     if (current_ms, current_seq) > (start_ms, start_seq):
         entries = get_entries(current_entries)
         id_and_entries = f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{entries}"
-        final = f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{id_and_entries}"
+        final = f"*1\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{id_and_entries}"
         client.sendall(final.encode())
         
 
