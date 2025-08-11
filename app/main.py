@@ -291,7 +291,7 @@ def handle_client(client: socket.socket):
 
 
             if blocked:
-                timeout = elements[3]
+                timeout = int(elements[3]) / 1000
                 event = threading.Event()
                 blocked_streams[stream_name].append((event, entry_ids[0]))
                 if not event.wait(timeout if timeout > 0 else None):
