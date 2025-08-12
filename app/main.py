@@ -317,10 +317,10 @@ def handle_client(client: socket.socket):
             if key in store:
                 value = int(store[key])
                 value += 1
-                store[key] = value
+                store[key] = str(value)
                 client.sendall(f":{store[key]}\r\n".encode())
             else:
-                store[key] = 1
+                store[key] = "1"
                 client.sendall(f":1\r\n".encode())
             
 
