@@ -318,7 +318,7 @@ def handle_client(client: socket.socket):
                 try:
                     value = int(store[key])
                 except:
-                    client.sendall("-ERR value is not an integer or out of range\r\n")
+                    client.sendall(b"-ERR value is not an integer or out of range\r\n")
                 value += 1
                 store[key] = str(value)
                 client.sendall(f":{store[key]}\r\n".encode())
