@@ -320,7 +320,7 @@ def handle_client(client: socket.socket):
                 store[key] = value
             else:
                 store[key] = 1
-            client.sendall(":{store[key]}\r\n".encode())
+            client.sendall(f":{store[key]}\r\n".encode())
 
     
 def get_entries(current_entries: list):
