@@ -317,7 +317,7 @@ def handle_client(client: socket.socket):
             if key in store:
                 try:
                     value = int(store[key])
-                except:
+                except(ValueError, TypeError):
                     client.sendall(b"-ERR value is not an integer or out of range\r\n")
                 value += 1
                 store[key] = str(value)
