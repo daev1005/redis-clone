@@ -315,11 +315,13 @@ def handle_client(client: socket.socket):
         elif "incr" == cmd:
             key = elements[1]
             if store[key]:
-                value = store[key]
+                value = int(store[key])
                 value += 1
                 store[key] = value
+                client.sendall(store[key].encode())
             else:
                 store[key] = 1
+                client.sendall(store[key].encode())
 
     
 def get_entries(current_entries: list):
