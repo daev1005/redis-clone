@@ -314,7 +314,7 @@ def handle_client(client: socket.socket):
                 client.sendall(final.encode())
         elif "incr" == cmd:
             key = elements[1]
-            if store[key]:
+            if key in store:
                 value = int(store[key])
                 value += 1
                 store[key] = value
