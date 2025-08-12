@@ -318,9 +318,11 @@ def handle_client(client: socket.socket):
                 value = int(store[key])
                 value += 1
                 store[key] = value
+                client.sendall(f":{store[key]}\r\n".encode())
             else:
                 store[key] = 1
-            client.sendall(f":{store[key]}\r\n".encode())
+                client.sendall(f":1\r\n".encode())
+            
 
     
 def get_entries(current_entries: list):
