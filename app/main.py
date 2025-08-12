@@ -315,7 +315,10 @@ def handle_client(client: socket.socket):
         elif "incr" == cmd:
             key = elements[1]
             if key in store:
-                value = int(store[key])
+                try:
+                    value = int(store[key])
+                except:
+                    client.sendall("-ERR value is not an integer or out of range\r\n")
                 value += 1
                 store[key] = str(value)
                 client.sendall(f":{store[key]}\r\n".encode())
