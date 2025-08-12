@@ -320,7 +320,6 @@ def handle_client(client: socket.socket):
                 store[key] = value
                 client.sendall(f":{store[key]}\r\n".encode())
             else:
-                store[key] = 1
                 client.sendall(f":1\r\n".encode())
             
 
