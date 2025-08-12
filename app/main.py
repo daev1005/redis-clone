@@ -312,6 +312,15 @@ def handle_client(client: socket.socket):
                             message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
                     final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
                 client.sendall(final.encode())
+        elif "incr" == cmd:
+            key = elements[1]
+            if store[key]:
+                value = store[key]
+                value += 1
+                store[key] = value
+            else:
+                store[key] = 1
+
     
 def get_entries(current_entries: list):
     if current_entries:
