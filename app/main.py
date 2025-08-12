@@ -236,6 +236,7 @@ def handle_client(client: socket.socket):
             if blocked_streams[stream_name]:
                 event, start_id, blocked_client = blocked_streams[stream_name].pop(0)
                 unblock_stream(stream_name, start_id, entry_id, entries, blocked_client)
+                event.set()
                 if not blocked_streams[stream_name]:
                     del blocked_streams[stream_name]
 
