@@ -322,6 +322,8 @@ def get_entries(current_entries: list):
         return "*0\r\n"
 
 def unblock_stream(stream_name, start_id, current_id, current_entries, client):
+    if start_id == "$":
+        start_id = "0-0"
     start_ms, start_seq = map(int, start_id.split("-"))
     current_ms, current_seq = map(int, current_id.split("-"))
     if (current_ms, current_seq) > (start_ms, start_seq):
