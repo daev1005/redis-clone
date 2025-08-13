@@ -340,7 +340,7 @@ def handle_client(client: socket.socket):
         elif "exec" == cmd:
             if multi_called:
                 multi_called = False
-                if queued_clients:
+                if queued:
                     for queued_clients in queued:
                         handle_client(queued_clients)
                 else:
