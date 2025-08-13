@@ -288,29 +288,29 @@ def xread_cmd(client: socket.socket, elements: list):
         entry_ids = elements[streams_start + num_streams : ]
         key_to_value = dict(zip(stream_names, entry_ids))
 
-        if blocked:
-            timeout = int(elements[2]) / 1000
-            event = threading.Event()
-            blocked_streams[stream_names[0]].append((event, entry_ids[0], client))
-            if not event.wait(timeout if timeout > 0 else None):
-                #client.sendall(b"$-1\r\n")
-                return f"$-1\r\n"
-        else:
-            final = f"*{len(key_to_value)}\r\n"
-            for stream_name in key_to_value:
-                entry_id = key_to_value[stream_name]
-                start_ms, start_seq = map(int, entry_id.split("-"))
+    if blocked:
+        timeout = int(elements[2]) / 1000
+        event = threading.Event()
+        blocked_streams[stream_names[0]].append((event, entry_ids[0], client))
+        if not event.wait(timeout if timeout > 0 else None):
+            #client.sendall(b"$-1\r\n")
+            return f"$-1\r\n"
+    else:
+        final = f"*{len(key_to_value)}\r\n"
+        for stream_name in key_to_value:
+            entry_id = key_to_value[stream_name]
+            start_ms, start_seq = map(int, entry_id.split("-"))
 
-                message = ""
-                for current_id, current_entries in store[stream_name] :
-                    current_ms, current_seq = map(int, current_id.split("-"))
-                    if (current_ms, current_seq) > (start_ms, start_seq):
-                        inner = get_entries(current_entries)
+            message = ""
+            for current_id, current_entries in store[stream_name] :
+                current_ms, current_seq = map(int, current_id.split("-"))
+                if (current_ms, current_seq) > (start_ms, start_seq):
+                    inner = get_entries(current_entries)
 
-                        message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
-                final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
-            #client.sendall(final.encode())
-            return final
+                    message += f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{inner}"
+            final += f"*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{message}"
+        #client.sendall(final.encode())
+        return final
 
 def incr_cmd(client: socket.socket, elements: list):
     key = elements[1]
