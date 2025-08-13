@@ -326,7 +326,7 @@ def incr_cmd(client: socket.socket, elements: list):
         return f":{store[key]}\r\n"
     else:
         store[key] = "1"
-        client.sendall(f":1\r\n".encode())
+        #client.sendall(f":1\r\n".encode())
         return f":1\r\n"
 
 
