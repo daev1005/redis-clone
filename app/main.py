@@ -47,7 +47,6 @@ def handle_client(client: socket.socket):
         input = client.recv(1024)
         elements = parse_command(input)
         cmd = elements[0].lower()
-        multi_called = False
         
         if not multi_called:
             if "ping" == cmd:
