@@ -39,15 +39,15 @@ def parse_command(data: bytes):
         index += 1
     return elements
 
-multi_called = False
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
+    multi_called = False
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements = parse_command(input)
         cmd = elements[0].lower()
-        
+        multi_called = False
         
         if not multi_called:
             if "ping" == cmd:
@@ -340,12 +340,12 @@ def handle_client(client: socket.socket):
                 multi_called = True
         elif "exec" == cmd:
             if multi_called:
-                multi_called = False
                 if queued:
                     for queued_clients in queued:
                         handle_client(queued_clients)
                 else:
                     client.sendall(b"*0\r\n")
+                multi_called = False
             else:
                 client.sendall(b"-ERR EXEC without MULTI\r\n")
 
