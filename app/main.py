@@ -402,7 +402,7 @@ def handle_client(client: socket.socket):
                         responses.append(find_cmd(cmd_key, client, command))
                     msg = f"*{len(responses)}\r\n"
                     for response in responses:
-                        msg  += f"${len(response)}\r{response}\r\n"
+                        msg  += response
                     client.sendall(msg.encode())
                 else:
                     client.sendall(b"*0\r\n")
