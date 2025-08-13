@@ -12,7 +12,7 @@ store = {}
 expiration_time = {}
 queued = []
 
-multi_called = False
+
 
 
 ## Parses the command from the client input.
@@ -46,7 +46,8 @@ def handle_client(client: socket.socket):
         input = client.recv(1024)
         elements = parse_command(input)
         cmd = elements[0].lower()
-        if not multi_called:
+        multi_called = False
+        if multi_called:
             if "ping" == cmd:
                 # Respond with PONG
                 client.sendall(b"+PONG\r\n")
