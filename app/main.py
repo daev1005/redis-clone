@@ -374,6 +374,7 @@ def handle_client(client: socket.socket):
                         responses.append(find_cmd(cmd_key, client, command))
                     for response in responses:
                         msg  += f"${len(response)}\r\{response}\r\n"
+                    client.sendall(msg.encode())
                 else:
                     client.sendall(b"*0\r\n")
                 multi_called = False
