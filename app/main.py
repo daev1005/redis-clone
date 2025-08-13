@@ -350,7 +350,7 @@ command_map = {
 
 def find_cmd(cmd, client: socket.socket, elements:list):
     if cmd in command_map:
-        command_map[cmd](client, elements)
+        return command_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
 
