@@ -368,10 +368,10 @@ def handle_client(client: socket.socket):
             if multi_called:
                 if commands:
                     responses = []
-                    msg = f"*1\r\n"
                     for command in commands:
                         cmd_key = command[0].lower()
                         responses.append(find_cmd(cmd_key, client, command))
+                    msg = f"*{len(responses)}\r\n"
                     for response in responses:
                         msg  += f"${len(response)}\r\{response}\r\n"
                     client.sendall(msg.encode())
