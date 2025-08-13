@@ -334,9 +334,12 @@ def handle_client(client: socket.socket):
                 client.sendall(b"+OK\r\n")
                 multi_called = True
             elif "exec" == cmd:
-                multi_called = False
-                for queued_clients in queued:
-                    handle_client(queued_clients)
+                if multi_called:
+                    multi_called = False
+                    for queued_clients in queued:
+                        handle_client(queued_clients)
+                else:
+                    client.sendall(b"-ERR EXEC without MULTI\r\n")
 
         else:
             queued.append(client)
