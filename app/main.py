@@ -340,6 +340,7 @@ def handle_client(client: socket.socket):
 
         else:
             queued.append(client)
+            client.sendall(b"+QUEUED\r\n")
 
                 
             
