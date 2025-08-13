@@ -47,7 +47,19 @@ def handle_client(client: socket.socket):
         input = client.recv(1024)
         elements = parse_command(input)
         cmd = elements[0].lower()
-        
+        if "multi" == cmd:
+                client.sendall(b"+OK\r\n")
+                multi_called = True
+        elif "exec" == cmd:
+            if multi_called:
+                if queued:
+                    for queued_clients in queued:
+                        handle_client(queued_clients)
+                else:
+                    client.sendall(b"*0\r\n")
+                multi_called = False
+            else:
+                client.sendall(b"-ERR EXEC without MULTI\r\n")
         if not multi_called:
             if "ping" == cmd:
                 # Respond with PONG
@@ -334,19 +346,7 @@ def handle_client(client: socket.socket):
         else:
             queued.append(client)
             client.sendall(b"+QUEUED\r\n")
-        if "multi" == cmd:
-                client.sendall(b"+OK\r\n")
-                multi_called = True
-        elif "exec" == cmd:
-            if multi_called:
-                if queued:
-                    for queued_clients in queued:
-                        handle_client(queued_clients)
-                else:
-                    client.sendall(b"*0\r\n")
-                multi_called = False
-            else:
-                client.sendall(b"-ERR EXEC without MULTI\r\n")
+       
 
                 
             
