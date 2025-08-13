@@ -367,9 +367,13 @@ def handle_client(client: socket.socket):
             commands = queued.get(client, [])
             if multi_called:
                 if commands:
+                    responses = []
+                    msg = f"*1\r\n"
                     for command in commands:
                         cmd_key = command[0].lower()
-                        find_cmd(cmd_key, client, command)
+                        responses.append(find_cmd(cmd_key, client, command))
+                    for response in responses:
+                        msg  += f"${len(response)}\r\{response}\r\n"
                 else:
                     client.sendall(b"*0\r\n")
                 multi_called = False
