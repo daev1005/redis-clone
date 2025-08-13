@@ -186,7 +186,7 @@ def handle_client(client: socket.socket):
                         client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
             elif "blpop"== cmd:
                 list_name = elements[1]
-                timeout = float(elements[2]) * 1000
+                timeout = float(elements[2])
                 event = threading.Event()
                 if list_name in lists and lists[list_name]:
                     item = lists[list_name].pop(0)
