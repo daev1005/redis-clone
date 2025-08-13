@@ -411,7 +411,7 @@ def handle_client(client: socket.socket):
             else:
                 client.sendall(b"-ERR EXEC without MULTI\r\n")
         elif not multi_called:
-            client.sendall(f"{find_cmd(cmd, client, elements)}".encode())
+            client.sendall(find_cmd(cmd, client, elements).encode())
         else:
             if client not in queued:
                 queued[client] = []
