@@ -5,7 +5,8 @@ from collections import defaultdict
 
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
-lists = {}  
+lists = {}
+list_locks = defaultdict(threading.Lock)  
 
 #Stores key-value pairs
 store = {}
@@ -105,27 +106,27 @@ def handle_client(client: socket.socket):
                     client.sendall(message.encode()) 
             elif "rpush" == cmd:
                 # This list contains a key and a value of a list
-                values = []
-                #Adds all elements after the list name to the list
-                for i in range(2, len(elements)):
-                    values.append(elements[i])
-                if elements[1] in lists:
-                    lists[elements[1]].extend(values)
-                else:
-                    lists[elements[1]] = values
-                size = len(lists[elements[1]])
-                client.sendall(f":{size}\r\n".encode())
+                values = elements[2:]
+                list_name = elements[1]
+
+                with list_locks[list_name]:
+                    if list_name in lists:
+                        lists[elements[1]].extend(values)
+                    else:
+                        lists[elements[1]] = values
+                    size = len(lists[list_name])
+                    client.sendall(f":{size}\r\n".encode())
                 
-                # If there are any blocked clients for this list, unblock the oldest one and send them the first item
-                if blocked_clients[elements[1]]:
-                    oldest_client, event = blocked_clients[elements[1]].pop(0)
-                    if lists[elements[1]]:
-                        item = lists[elements[1]].pop(0)
-                        message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
-                        oldest_client.sendall(message.encode())
-                        event.set()
-                        if not blocked_clients[elements[1]]:
-                            del blocked_clients[elements[1]]   
+                    # If there are any blocked clients for this list, unblock the oldest one and send them the first item
+                    if blocked_clients[list_name]:
+                        oldest_client, event = blocked_clients[elements[1]].pop(0)
+                        if lists[elements[1]]:
+                            item = lists[elements[1]].pop(0)
+                            message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
+                            oldest_client.sendall(message.encode())
+                            event.set()
+                            if not blocked_clients[elements[1]]:
+                                del blocked_clients[elements[1]]   
             elif "lrange" == cmd:
                 values = lists.get(elements[1]) # Get the list for the given key
                 first_index = int(elements[2])
@@ -188,17 +189,18 @@ def handle_client(client: socket.socket):
                 list_name = elements[1]
                 timeout = float(elements[2])
                 event = threading.Event()
-                if list_name in lists and lists[list_name]:
-                    item = lists[list_name].pop(0)
-                    message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
-                    client.sendall(message.encode())
-                else:
-                    if list_name not in blocked_clients:
-                        blocked_clients[list_name] = []
-                    blocked_clients[list_name].append((client, event))
-                    if not event.wait(timeout if timeout > 0 else None):
-                        # Timeout expired without push event
-                        client.sendall(b"$-1\r\n")
+                with list_locks[list_name]:
+                    if list_name in lists and lists[list_name]:
+                        item = lists[list_name].pop(0)
+                        message = f"*2\r\n${len(list_name)}\r\n{list_name}\r\n${len(item)}\r\n{item}\r\n"
+                        client.sendall(message.encode())
+                    else:
+                        if list_name not in blocked_clients:
+                            blocked_clients[list_name] = []
+                        blocked_clients[list_name].append((client, event))
+                if not event.wait(timeout if timeout > 0 else None):
+                    # Timeout expired without push event
+                    client.sendall(b"$-1\r\n")
             elif "type" == cmd:
                 if elements[1] in store:
                     value = store[elements[1]]
