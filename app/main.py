@@ -123,7 +123,7 @@ def lpush_cmd(client: socket.socket, elements: list):
         values = values + lists[elements[1]]
     lists[elements[1]] = values
     #client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
-    return f":{len(lists[elements[1]])}\r\n".encode()
+    return f":{len(lists[elements[1]])}\r\n"
 
 def llen_cmd(client: socket.socket, elements: list):
     if elements[1] not in lists:
