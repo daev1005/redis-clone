@@ -283,10 +283,10 @@ def xread_cmd(client: socket.socket, elements: list):
             #client.sendall(b"-ERR syntax error\r\n")
             return f"-ERR syntax error\r\n"
 
-        num_streams = (len(elements) - streams_start) // 2
-        stream_names = elements[streams_start : streams_start + num_streams]
-        entry_ids = elements[streams_start + num_streams : ]
-        key_to_value = dict(zip(stream_names, entry_ids))
+    num_streams = (len(elements) - streams_start) // 2
+    stream_names = elements[streams_start : streams_start + num_streams]
+    entry_ids = elements[streams_start + num_streams : ]
+    key_to_value = dict(zip(stream_names, entry_ids))
 
     if blocked:
         timeout = int(elements[2]) / 1000
