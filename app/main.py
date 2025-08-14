@@ -82,9 +82,9 @@ def rpush_cmd(client: socket.socket, elements: list):
                 item = lists[elements[1]].pop(0)
                 message = f"*2\r\n${len(elements[1])}\r\n{elements[1]}\r\n${len(item)}\r\n{item}\r\n"
                 oldest_client.sendall(message.encode())
-                event.set()
                 if not blocked_clients[elements[1]]:
                     del blocked_clients[elements[1]]
+            event.set()
         return f":{size}\r\n"
 def lrange_cmd(client: socket.socket, elements: list):
     values = lists.get(elements[1]) # Get the list for the given key
