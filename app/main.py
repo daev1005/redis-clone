@@ -412,6 +412,12 @@ def handle_client(client: socket.socket):
                 queued[client] = []
             else:
                 client.sendall(b"-ERR EXEC without MULTI\r\n")
+        elif "discard" == cmd:
+            if multi_called:
+                client.sendall(b"+OK\r\n")
+                multi_called = False
+            else:
+                client.sendall(b"-ERR DISCARD without MULTI\r\n")
         elif not multi_called:
             response = find_cmd(cmd, client, elements)
             if response is not None:
