@@ -472,6 +472,8 @@ def main():
         port_index = sys.argv.index("--port") + 1
         if port_index < len(sys.argv):
             PORT = int(sys.argv[port_index])
+    if "--replicateof" in sys.argv:
+        server_role = "slave"
 
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
