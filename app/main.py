@@ -459,7 +459,15 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
 
 
 def main():
-    server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
+    PORT = 6379  # default
+
+    if "--port" in sys.argv:
+        port_index = sys.argv.index("--port") + 1
+        if port_index < len(sys.argv):
+            PORT = int(sys.argv[port_index])
+
+    print(f"Starting server on port {PORT}")
+    server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
         connection,_ = server_socket.accept() # wait for client
         thread = threading.Thread(target=handle_client, args=(connection,))
