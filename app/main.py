@@ -465,6 +465,7 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
 
 
 def main():
+    global server_role
     PORT = 6379  # default
 
     #Parse through server start command and get the port
