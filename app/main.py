@@ -340,7 +340,7 @@ def info_cmd(client: socket.socket, elements: list):
         role = server_status["server_role"]
         repl_id = server_status["repl_id"]
         repl_offset = server_status["repl_offset"]
-        response = f"role:{role}\r\nmaster_replid:{repl_id}\r\nmaster_repl_offset:{repl_offset}\r\n"
+        response = f"role:{role}\r\nmaster_replid:{repl_id}\r\nmaster_repl_offset:{repl_offset}"
         return (
             f"${len(response)}\r\n{response}"
         )
