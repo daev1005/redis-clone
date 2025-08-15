@@ -4,12 +4,11 @@ import threading
 import time
 from collections import defaultdict
 
+server_role = "master"
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
 list_locks = defaultdict(threading.Lock)  
-
-#Stores key-value pairs
 store = {}
 expiration_time = {}
 queued = {}
@@ -336,7 +335,7 @@ def info_cmd(client: socket.socket, elements: list):
     type = elements[1].lower()
     if type == "replication":
 
-        return f"${len("role:master")}\r\nrole:master\r\n"
+        return f"${len("role:" + server_role)}\r\nrole:{server_role}\r\n"
 
 
 command_map = {
