@@ -4,7 +4,10 @@ import threading
 import time
 from collections import defaultdict
 
-server_role = "master"
+server_status = {
+    "server_role": "master",
+    "repl_id": "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb",
+    "repl_offset": "0"}
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
@@ -334,8 +337,12 @@ def incr_cmd(client: socket.socket, elements: list):
 def info_cmd(client: socket.socket, elements: list):
     type = elements[1].lower()
     if type == "replication":
-
-        return f"${len("role:" + server_role)}\r\nrole:{server_role}\r\n"
+        role = server_status["server_role"]
+        repl_id = server_status["repl_id"]
+        repl_offset = server_status["repl_offset"]
+        return f"${len("role:" + role)}\r\nrole:{role}\r\n"\
+        f"${len(repl_id)}\r\nmaster_replid:{repl_id}\r\n"\
+        f"${len(repl_offset)}\r\nmaster_repl_offset:{repl_offset}\r\n"
 
 
 command_map = {
@@ -465,7 +472,7 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
 
 
 def main():
-    global server_role
+    global server_status
     PORT = 6379  # default
 
     #Parse through server start command and get the port
@@ -474,7 +481,7 @@ def main():
         if port_index < len(sys.argv):
             PORT = int(sys.argv[port_index])
     if "--replicaof" in sys.argv:
-        server_role = "slave"
+        server_status["server_role"] = "slave"
 
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
