@@ -355,6 +355,7 @@ command_map = {
     "xrange": xrange_cmd,
     "xread": xread_cmd,
     "incr": incr_cmd,
+    "info": info_cmd
 }
 
 def find_cmd(cmd, client: socket.socket, elements:list):
