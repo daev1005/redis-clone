@@ -332,6 +332,12 @@ def incr_cmd(client: socket.socket, elements: list):
         #client.sendall(f":1\r\n".encode())
         return f":1\r\n"
 
+def info_cmd(client: socket.socket, elements: list):
+    type = elements[1].lower()
+    if type == "replication":
+
+        return f"${len("role:master")}\r\nrole:master\r\n"
+
 
 command_map = {
     "ping": ping_cmd,
@@ -461,6 +467,7 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
 def main():
     PORT = 6379  # default
 
+    #Parse through server start command and get the port
     if "--port" in sys.argv:
         port_index = sys.argv.index("--port") + 1
         if port_index < len(sys.argv):
