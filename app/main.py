@@ -472,7 +472,7 @@ def main():
         port_index = sys.argv.index("--port") + 1
         if port_index < len(sys.argv):
             PORT = int(sys.argv[port_index])
-    if "--replicateof" in sys.argv:
+    if "--replicaof" in sys.argv:
         server_role = "slave"
 
     print(f"Starting server on port {PORT}")
