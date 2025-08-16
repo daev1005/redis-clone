@@ -469,7 +469,11 @@ def unblock_stream(stream_name, start_id, current_id, current_entries, client):
         final = f"*1\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{id_and_entries}"
         client.sendall(final.encode())
         
-        
+def make_resp_command(*parts: str):
+    resp = f"*{len(parts)}\r\n"
+    for p in parts:
+        resp += f"${len(p)}\r\n{p}\r\n"
+    return resp.encode()       
 
 
 def main():
@@ -483,6 +487,12 @@ def main():
             PORT = int(sys.argv[port_index])
     if "--replicaof" in sys.argv:
         server_status["server_role"] = "slave"
+        master_host = sys.argv[sys.argv.index("--replicaof") + 1]
+        master_port = sys.argv[sys.argv.index("--replicaof") + 2]
+        master_connection = socket.create_connection((master_host, master_port))
+        master_connection.sendall(make_resp_command("PING"))
+
+        
 
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
