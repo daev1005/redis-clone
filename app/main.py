@@ -487,8 +487,8 @@ def main():
             PORT = int(sys.argv[port_index])
     if "--replicaof" in sys.argv:
         server_status["server_role"] = "slave"
-        master_host = sys.argv[sys.argv.index("--replicaof") + 1]
-        master_port = sys.argv[sys.argv.index("--replicaof") + 2]
+        master_host = sys.argv[sys.argv.index("--replicaof") + 1][0]
+        master_port = sys.argv[sys.argv.index("--replicaof") + 2][1]
         master_connection = socket.create_connection((master_host, master_port))
         master_connection.sendall(make_resp_command("PING"))
 
