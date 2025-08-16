@@ -346,6 +346,7 @@ def info_cmd(client: socket.socket, elements: list):
         )
 
 
+
 command_map = {
     "ping": ping_cmd,
     "echo": echo_cmd,
@@ -492,6 +493,8 @@ def main():
         master_port = int(master_info[1])
         master_connection = socket.create_connection((master_host, master_port))
         master_connection.sendall(make_resp_command("PING"))
+        master_connection.sendall(make_resp_command("REPLCONF", "listening-port", str(PORT)))
+        master_connection.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
 
         
 
