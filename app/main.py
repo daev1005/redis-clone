@@ -493,8 +493,11 @@ def main():
         master_port = int(master_info[1])
         master_connection = socket.create_connection((master_host, master_port))
         master_connection.sendall(make_resp_command("PING"))
+        response = master_connection.recv(1024)
         master_connection.sendall(make_resp_command("REPLCONF", "listening-port", str(PORT)))
+        response = master_connection.recv(1024)
         master_connection.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
+        response = master_connection.recv(1024)
 
         
 
