@@ -345,6 +345,9 @@ def info_cmd(client: socket.socket, elements: list):
             f"${len(response)}\r\n{response}\r\n"
         )
 
+def replconf_cmd(client: socket.socket, elements: list):
+    return f"+OK\r\n"
+
 
 
 command_map = {
@@ -363,7 +366,8 @@ command_map = {
     "xrange": xrange_cmd,
     "xread": xread_cmd,
     "incr": incr_cmd,
-    "info": info_cmd
+    "info": info_cmd,
+    "replconf": replconf_cmd
 }
 
 def find_cmd(cmd, client: socket.socket, elements:list):
