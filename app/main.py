@@ -346,12 +346,13 @@ def info_cmd(client: socket.socket, elements: list):
         )
 
 def replconf_cmd(client: socket.socket, elements: list):
-    repl_id = elements[2]
-    rep_offset = elements[3]
-    if elements[1].lower() == "psync":
+    return f"+OK\r\n"
+
+def psync_cmd(client: socket.socket, elements: list):
+    repl_id = elements[1]
+    repl_offset = elements[2]
+    if repl_id == "?" and repl_offset == "-1":
         return f"+FULLRESYNC {server_status["repl_id"]} 0\r\n"
-    else:
-        return f"+OK\r\n"
 
 
 
