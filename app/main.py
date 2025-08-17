@@ -352,7 +352,7 @@ def psync_cmd(client: socket.socket, elements: list):
     repl_id = elements[1]
     repl_offset = elements[2]
     if repl_id == "?" and repl_offset == "-1":
-        client.sendall(f"+FULLRESYNC {server_status["repl_id"]} 0\r\n")
+        client.sendall(f"+FULLRESYNC {server_status["repl_id"]} 0\r\n".encode())
         empty_rdb_hex = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
         client.sendall(b"$" + str(len(bytes.fromhex(empty_rdb_hex))).encode() + b"\r\n" + bytes.fromhex(empty_rdb_hex))
     return None
