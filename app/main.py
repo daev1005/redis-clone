@@ -420,7 +420,7 @@ def write_to_replicas(cmd, elements):
 def parse_command(data: bytes):
     
     lines = data.split(b"\r\n")
-    if not lines[0].startswith("*"):
+    if not lines[0].startswith(b"*"):
         raise ValueError("Invalid command format")
     num_elements = int(lines[0][1:])
     elements = []
