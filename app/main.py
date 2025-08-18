@@ -7,7 +7,8 @@ from collections import defaultdict
 server_status = {
     "server_role": "master",
     "repl_id": "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb",
-    "repl_offset": "0"}
+    "repl_offset": "0",
+    "replicas": []}
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
@@ -355,6 +356,7 @@ def psync_cmd(client: socket.socket, elements: list):
         client.sendall(f"+FULLRESYNC {server_status["repl_id"]} 0\r\n".encode())
         empty_rdb_hex = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
         client.sendall(b"$" + str(len(bytes.fromhex(empty_rdb_hex))).encode() + b"\r\n" + bytes.fromhex(empty_rdb_hex))
+        server_status["replicas"].append(client)
     return None
         
 
@@ -386,6 +388,8 @@ def find_cmd(cmd, client: socket.socket, elements:list):
         return command_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
+    for replicated_client in server_status["replicas"]:
+        replicated_client.sendall(make_resp_command(*elements))
 
 
 ## Parses the command from the client input.
@@ -508,15 +512,15 @@ def main():
         server_status["server_role"] = "slave"
         master_host = master_info[0]
         master_port = int(master_info[1])
-        master_connection = socket.create_connection((master_host, master_port))
-        master_connection.sendall(make_resp_command("PING"))
-        response = master_connection.recv(1024) #pauses code until the connection actually receives something
-        master_connection.sendall(make_resp_command("REPLCONF", "listening-port", str(PORT)))
-        response = master_connection.recv(1024)
-        master_connection.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
-        response = master_connection.recv(1024)
-        master_connection.sendall(make_resp_command("PSYNC", "?", "-1"))
-        response = master_connection.recv(1024)
+        master_socket = socket.create_connection((master_host, master_port))
+        master_socket.sendall(make_resp_command("PING"))
+        response = master_socket.recv(1024) #pauses code until the connection actually receives something
+        master_socket.sendall(make_resp_command("REPLCONF", "listening-port", str(PORT)))
+        response = master_socket.recv(1024)
+        master_socket.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
+        response = master_socket.recv(1024)
+        master_socket.sendall(make_resp_command("PSYNC", "?", "-1"))
+        response = master_socket.recv(1024)
   
 
         
