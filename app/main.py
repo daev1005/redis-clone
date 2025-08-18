@@ -475,7 +475,7 @@ def handle_client(client: socket.socket):
                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
         elif not multi_called:
             response = find_cmd(cmd, client, elements)
-            if response is not None and server_status["server_role"] is not "slave":
+            if response is not None and server_status["server_role"] != "slave":
                 client.sendall(response.encode())
         else:
             if client not in queued:
