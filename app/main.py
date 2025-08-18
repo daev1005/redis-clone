@@ -449,7 +449,7 @@ def handle_client(client: socket.socket):
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements = parse_command(input)
-        cmd = elements[0].decode("utf-8").lower()
+        cmd = elements[0].lower()
         
         if "multi" == cmd:
                 client.sendall(b"+OK\r\n")
@@ -461,7 +461,7 @@ def handle_client(client: socket.socket):
                 if commands:
                     responses = []
                     for command in commands:
-                        cmd_key = command[0].decode("utf-8").lower()
+                        cmd_key = command[0].lower()
                         resp = find_cmd(cmd_key, client, command)
                         if resp is not None:
                             responses.append(resp)
