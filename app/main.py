@@ -383,16 +383,30 @@ command_map = {
     "psync": psync_cmd
 }
 
-def find_cmd(cmd, client: socket.socket, elements:list):
+def find_cmd(cmd, client: socket.socket, elements: list):
+    
+
+    # Execute the command on the master first
+    result = None
     if cmd in command_map:
-        for replicated_client in server_status["replicas"]:
-            try:
-                replicated_client.sendall(make_resp_command(*elements))
-            except Exception:
-                server_status["replicas"].remove(replicated_client)
-        return command_map[cmd](client, elements)
+        result = command_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
+        return None
+
+    # Only replicate write commands
+    write_to_replicas(cmd, elements)
+
+    return result
+
+def write_to_replicas(cmd, list):
+    write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
+    if cmd in write_commands:
+            for replicated_client in server_status["replicas"]:
+                try:
+                    replicated_client.sendall(make_resp_command(*list))
+                except Exception:
+                    server_status["replicas"].remove(replicated_client)
 
 
 ## Parses the command from the client input.
@@ -442,6 +456,7 @@ def handle_client(client: socket.socket):
                         resp = find_cmd(cmd_key, client, command)
                         if resp is not None:
                             responses.append(resp)
+                        write_to_replicas(cmd_key, commands)
                     msg = f"*{len(responses)}\r\n"
                     for response in responses:
                         msg  += response
