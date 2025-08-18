@@ -399,13 +399,13 @@ def find_cmd(cmd, client: socket.socket, elements: list):
 
     return result
 
-def write_to_replicas(cmd, list):
+def write_to_replicas(cmd, elements):
     write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
     dead_replicas = []
     if cmd in write_commands:
             for replicated_client in server_status["replicas"]:
                 try:
-                    replicated_client.sendall(make_resp_command(*list))
+                    replicated_client.sendall(make_resp_command(*elements))
                 except Exception:
                     dead_replicas.append(replicated_client)
 
@@ -546,7 +546,11 @@ def main():
         response = master_socket.recv(1024)
         master_socket.sendall(make_resp_command("PSYNC", "?", "-1"))
         response = master_socket.recv(1024)
-  
+        threading.Thread(
+            target=handle_client,
+            args=(master_socket, ),
+            daemon=True,
+        ).start()
 
         
 
