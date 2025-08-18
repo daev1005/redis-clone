@@ -143,7 +143,7 @@ def lpop_cmd(client: socket.socket, elements: list):
     # If the list does not exist or is empty, respond with $-1
     if list_name not in lists or len(lists[list_name]) == 0:
         #client.sendall(b"-1\r\n")
-        return f"-1\r\n"
+        return f"$-1\r\n"
     else:
         # Removes and returns the first element of the list
         if len(elements) > 2:
@@ -475,7 +475,7 @@ def handle_client(client: socket.socket):
                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
         elif not multi_called:
             response = find_cmd(cmd, client, elements)
-            if response is not None and server_status["server_role"] != "slave":
+            if response is not None:
                 client.sendall(response.encode())
         else:
             if client not in queued:
