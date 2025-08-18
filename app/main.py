@@ -16,6 +16,7 @@ list_locks = defaultdict(threading.Lock)
 store = {}
 expiration_time = {}
 queued = {}
+master_socket = None  # Global reference to master socket
 
 
 def ping_cmd(client: socket.socket, elements: list):
@@ -90,6 +91,7 @@ def rpush_cmd(client: socket.socket, elements: list):
                     del blocked_clients[elements[1]]
             event.set()
         return f":{size}\r\n"
+
 def lrange_cmd(client: socket.socket, elements: list):
     values = lists.get(elements[1]) # Get the list for the given key
     first_index = int(elements[2])
@@ -360,8 +362,6 @@ def psync_cmd(client: socket.socket, elements: list):
     return None
         
 
-
-
 command_map = {
     "ping": ping_cmd,
     "echo": echo_cmd,
@@ -384,18 +384,16 @@ command_map = {
 }
 
 def find_cmd(cmd, client: socket.socket, elements: list):
-    
-
-    # Execute the command on the master first
+    # Execute the command
     result = None
     if cmd in command_map:
         result = command_map[cmd](client, elements)
     else:
-        client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
-        return None
+        result = f"-ERR unknown command '{cmd}'\r\n"
 
-    # Only replicate write commands
-    write_to_replicas(cmd, elements)
+    # Only replicate write commands if this is the master
+    if server_status["server_role"] == "master":
+        write_to_replicas(cmd, elements)
 
     return result
 
@@ -413,8 +411,52 @@ def write_to_replicas(cmd, elements):
             for r in dead_replicas:
                 server_status["replicas"].remove(r)
 
-                
+def is_master_connection(client):
+    """Check if the client is the master connection (for replicas)"""
+    global master_socket
+    return master_socket is not None and client == master_socket
 
+def parse_multiple_commands(data: bytes):
+    """Parse multiple RESP commands from a single TCP segment"""
+    commands = []
+    input_str = data.decode()
+    lines = input_str.split("\r\n")
+    i = 0
+    
+    while i < len(lines):
+        if lines[i].startswith("*"):
+            try:
+                num_elements = int(lines[i][1:])
+                if num_elements == 0:
+                    i += 1
+                    continue
+                    
+                elements = []
+                i += 1
+                
+                for _ in range(num_elements):
+                    if i >= len(lines) or not lines[i].startswith("$"):
+                        break
+                    length = int(lines[i][1:])
+                    i += 1
+                    
+                    if i >= len(lines):
+                        break
+                    element = lines[i]
+                    if len(element) != length:
+                        break
+                    elements.append(element)
+                    i += 1
+                
+                if len(elements) == num_elements:
+                    commands.append(elements)
+                    
+            except (ValueError, IndexError):
+                i += 1
+        else:
+            i += 1
+    
+    return commands
 
 ## Parses the command from the client input.
 def parse_command(data: bytes):
@@ -444,57 +486,99 @@ def parse_command(data: bytes):
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     multi_called = False
+    buffer = b""  # Buffer for incomplete commands
+    
     while True:
-        #1024 is the bytesize of the input buffer (isn't fixed)
-        input = client.recv(1024)
-        elements = parse_command(input)
-        cmd = elements[0].lower()
-        
-        if "multi" == cmd:
-                client.sendall(b"+OK\r\n")
-                multi_called = True
-                queued[client] = []
-        elif "exec" == cmd:
-            commands = queued.get(client, [])
-            if multi_called:
-                if commands:
-                    responses = []
-                    for command in commands:
-                        cmd_key = command[0].lower()
-                        resp = find_cmd(cmd_key, client, command)
-                        if resp is not None:
-                            responses.append(resp)
-                        write_to_replicas(cmd_key, commands)
-                    msg = f"*{len(responses)}\r\n"
-                    for response in responses:
-                        msg  += response
-                    client.sendall(msg.encode())
-                else:
-                    client.sendall(b"*0\r\n")
-                multi_called = False
-                queued[client] = []
-            else:
-                client.sendall(b"-ERR EXEC without MULTI\r\n")
-        elif "discard" == cmd:
-            if multi_called:
-                client.sendall(b"+OK\r\n")
-                multi_called = False
-            else:
-                client.sendall(b"-ERR DISCARD without MULTI\r\n")
-        elif not multi_called:
-            response = find_cmd(cmd, client, elements)
-            if response is not None:
-                client.sendall(response.encode())
-        else:
-            if client not in queued:
-                queued[client] = []
-            queued[client].append(elements)
-            client.sendall(b"+QUEUED\r\n")
-
+        try:
+            #1024 is the bytesize of the input buffer (isn't fixed)
+            data = client.recv(1024)
+            if not data:
+                break
                 
+            buffer += data
             
-
+            # Check if this is a connection from the master (for replicas)
+            is_from_master = is_master_connection(client)
             
+            # Try to parse multiple commands from buffer
+            if is_from_master:
+                # For master connections, handle multiple commands that might be in one TCP segment
+                try:
+                    commands = parse_multiple_commands(buffer)
+                    if commands:
+                        # Process each command
+                        for elements in commands:
+                            if elements:
+                                cmd = elements[0].lower()
+                                # Process command but don't send response for propagated commands
+                                find_cmd(cmd, client, elements)
+                        buffer = b""  # Clear buffer after processing
+                except:
+                    # If parsing fails, try single command parsing
+                    try:
+                        elements = parse_command(buffer)
+                        cmd = elements[0].lower()
+                        find_cmd(cmd, client, elements)
+                        buffer = b""
+                    except:
+                        # Keep buffering if command is incomplete
+                        continue
+            else:
+                # Regular client - single command processing with responses
+                try:
+                    elements = parse_command(buffer)
+                    cmd = elements[0].lower()
+                    buffer = b""  # Clear buffer after successful parse
+                    
+                    if "multi" == cmd:
+                        client.sendall(b"+OK\r\n")
+                        multi_called = True
+                        queued[client] = []
+                    elif "exec" == cmd:
+                        commands = queued.get(client, [])
+                        if multi_called:
+                            if commands:
+                                responses = []
+                                for command in commands:
+                                    cmd_key = command[0].lower()
+                                    resp = find_cmd(cmd_key, client, command)
+                                    if resp is not None:
+                                        responses.append(resp)
+                                msg = f"*{len(responses)}\r\n"
+                                for response in responses:
+                                    msg  += response
+                                client.sendall(msg.encode())
+                            else:
+                                client.sendall(b"*0\r\n")
+                            multi_called = False
+                            queued[client] = []
+                        else:
+                            client.sendall(b"-ERR EXEC without MULTI\r\n")
+                    elif "discard" == cmd:
+                        if multi_called:
+                            client.sendall(b"+OK\r\n")
+                            multi_called = False
+                        else:
+                            client.sendall(b"-ERR DISCARD without MULTI\r\n")
+                    elif not multi_called:
+                        response = find_cmd(cmd, client, elements)
+                        if response is not None:
+                            client.sendall(response.encode())
+                    else:
+                        if client not in queued:
+                            queued[client] = []
+                        queued[client].append(elements)
+                        client.sendall(b"+QUEUED\r\n")
+                        
+                except ValueError:
+                    # Command might be incomplete, keep buffering
+                    if len(buffer) > 4096:  # Prevent buffer from growing too large
+                        buffer = b""
+                    continue
+                    
+        except Exception as e:
+            print(f"Error handling client: {e}")
+            break
 
     
 def get_entries(current_entries: list):
@@ -525,7 +609,7 @@ def make_resp_command(*parts: str):
 
 
 def main():
-    global server_status
+    global server_status, master_socket
     PORT = 6379  # default
 
     #Parse through server start command and get the port
@@ -553,8 +637,6 @@ def main():
             daemon=True,
         ).start()
 
-        
-
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
@@ -565,4 +647,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
