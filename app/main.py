@@ -385,11 +385,14 @@ command_map = {
 
 def find_cmd(cmd, client: socket.socket, elements:list):
     if cmd in command_map:
+        for replicated_client in server_status["replicas"]:
+            try:
+                replicated_client.sendall(make_resp_command(*elements))
+            except Exception:
+                server_status["replicas"].remove(replicated_client)
         return command_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
-    for replicated_client in server_status["replicas"]:
-        replicated_client.sendall(make_resp_command(*elements))
 
 
 ## Parses the command from the client input.
