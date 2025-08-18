@@ -418,15 +418,15 @@ def write_to_replicas(cmd, elements):
 
 ## Parses the command from the client input.
 def parse_command(data: bytes):
-    input = data.decode()
-    lines = input.split("\r\n")
+    
+    lines = data.split(b"\r\n")
     if not lines[0].startswith("*"):
         raise ValueError("Invalid command format")
     num_elements = int(lines[0][1:])
     elements = []
     index = 1
     for _ in range(num_elements):
-        if not lines[index].startswith("$"):
+        if not lines[index].startswith(b"$"):
             raise ValueError("Invalid element format")
         lengthOfElement = int(lines[index][1:])
         ##Index of the actual element
@@ -438,7 +438,9 @@ def parse_command(data: bytes):
 
         ##Move to the next element
         index += 1
-    return elements
+    
+    rest = b"\r\n".join(lines[index:])
+    return elements, rest
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -447,7 +449,7 @@ def handle_client(client: socket.socket):
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements = parse_command(input)
-        cmd = elements[0].lower()
+        cmd = elements[0].decode("utf-8").lower()
         
         if "multi" == cmd:
                 client.sendall(b"+OK\r\n")
@@ -459,7 +461,7 @@ def handle_client(client: socket.socket):
                 if commands:
                     responses = []
                     for command in commands:
-                        cmd_key = command[0].lower()
+                        cmd_key = command[0].decode("utf-8").lower()
                         resp = find_cmd(cmd_key, client, command)
                         if resp is not None:
                             responses.append(resp)
