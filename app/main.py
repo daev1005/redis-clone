@@ -418,15 +418,15 @@ def write_to_replicas(cmd, elements):
 
 ## Parses the command from the client input.
 def parse_command(data: bytes):
-    
-    lines = data.split(b"\r\n")
-    if not lines[0].startswith(b"*"):
+    input = data.decode()
+    lines = input.split("\r\n")
+    if not lines[0].startswith("*"):
         raise ValueError("Invalid command format")
     num_elements = int(lines[0][1:])
     elements = []
     index = 1
     for _ in range(num_elements):
-        if not lines[index].startswith(b"$"):
+        if not lines[index].startswith("$"):
             raise ValueError("Invalid element format")
         lengthOfElement = int(lines[index][1:])
         ##Index of the actual element
@@ -439,8 +439,7 @@ def parse_command(data: bytes):
         ##Move to the next element
         index += 1
     
-    rest = b"\r\n".join(lines[index:])
-    return elements, rest
+    return elements
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
