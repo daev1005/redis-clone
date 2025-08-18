@@ -401,12 +401,19 @@ def find_cmd(cmd, client: socket.socket, elements: list):
 
 def write_to_replicas(cmd, list):
     write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
+    dead_replicas = []
     if cmd in write_commands:
             for replicated_client in server_status["replicas"]:
                 try:
                     replicated_client.sendall(make_resp_command(*list))
                 except Exception:
-                    server_status["replicas"].remove(replicated_client)
+                    dead_replicas.append(replicated_client)
+
+            # clear at the end
+            for r in dead_replicas:
+                server_status["replicas"].remove(r)
+
+                
 
 
 ## Parses the command from the client input.
