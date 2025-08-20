@@ -348,12 +348,25 @@ def info_cmd(client: socket.socket, elements: list):
             f"${len(response)}\r\n{response}\r\n"
         )
 
+# def replconf_cmd(client: socket.socket, elements: list):
+#     if elements[1].lower() == "getack":
+#         repl_offset = server_status["repl_offset"]
+#         client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n".encode())
+#         return None
+#     else:
+#         return f"+OK\r\n"
+
 def replconf_cmd(client: socket.socket, elements: list):
-    if elements[1].lower() == "getack":
+    print(f"[DEBUG] replconf_cmd called with elements: {elements}")
+    if len(elements) > 1 and elements[1].lower() == "getack":
         repl_offset = server_status["repl_offset"]
-        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n".encode())
-        return None
+        response = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n"
+        print(f"[DEBUG] Sending REPLCONF ACK {repl_offset}")
+        print(f"[DEBUG] Response bytes: {response.encode()}")
+        client.sendall(response.encode())
+        print(f"[DEBUG] Response sent successfully")
     else:
+        print(f"[DEBUG] Non-GETACK REPLCONF command")
         return f"+OK\r\n"
 
 def psync_cmd(client: socket.socket, elements: list):
@@ -390,18 +403,41 @@ command_map = {
     "psync": psync_cmd
 }
 
+# def find_cmd(cmd, client: socket.socket, elements: list):
+#     # Execute the command on the master first
+#     result = None
+#     if cmd in command_map:
+#         result = command_map[cmd](client, elements)
+#     else:
+#         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
+#         return None
+
+#     # Only replicate write commands if we're a master
+#     if server_status["server_role"] == "master":
+#         write_to_replicas(cmd, elements)
+
+#     return result
+
 def find_cmd(cmd, client: socket.socket, elements: list):
+    print(f"[DEBUG] find_cmd called with cmd='{cmd}', elements={elements}")
+    
     # Execute the command on the master first
     result = None
     if cmd in command_map:
+        print(f"[DEBUG] Found {cmd} in command_map, calling handler")
         result = command_map[cmd](client, elements)
+        print(f"[DEBUG] Handler returned: {result}")
     else:
+        print(f"[DEBUG] Unknown command: {cmd}")
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
         return None
 
     # Only replicate write commands if we're a master
     if server_status["server_role"] == "master":
+        print(f"[DEBUG] Replicating to replicas (we are master)")
         write_to_replicas(cmd, elements)
+    else:
+        print(f"[DEBUG] Not replicating (we are {server_status['server_role']})")
 
     return result
 
@@ -505,14 +541,55 @@ def handle_client(client: socket.socket):
             client.sendall(b"+QUEUED\r\n")
 
 
+# def handle_replica(master_socket: socket.socket):
+#     buffer = b""  # accumulate incoming data
+#     repl_offset = int(server_status["repl_offset"])
+#     while True:
+#         try:
+#             data = master_socket.recv(1024)
+#             if not data:
+#                 break  # connection closed
+#             buffer += data
+
+#             while True:
+#                 try:
+#                     # Try to parse one command from the buffer
+#                     elements, consumed = parse_command(buffer)
+#                     cmd = elements[0].lower()
+#                     buffer = buffer[consumed:]  # remove parsed command
+                    
+#                     # Execute the command BEFORE updating offset for GETACK
+#                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
+#                         # Execute GETACK with current offset, then update offset
+#                         find_cmd(cmd, master_socket, elements)
+#                         repl_offset += consumed
+#                         server_status["repl_offset"] = str(repl_offset)
+#                     else:
+#                         # For all other commands, update offset first then execute
+#                         repl_offset += consumed
+#                         server_status["repl_offset"] = str(repl_offset)
+#                         find_cmd(cmd, master_socket, elements)
+
+#                 except ValueError:
+#                     # Incomplete command, wait for more data
+#                     break
+
+#         except Exception as e:
+#             print(f"Replica connection error: {e}")
+#             break
+
 def handle_replica(master_socket: socket.socket):
+    print("[DEBUG] handle_replica started")
     buffer = b""  # accumulate incoming data
     repl_offset = int(server_status["repl_offset"])
     while True:
         try:
             data = master_socket.recv(1024)
             if not data:
+                print("[DEBUG] Master connection closed")
                 break  # connection closed
+            
+            print(f"[DEBUG] Received {len(data)} bytes: {data}")
             buffer += data
 
             while True:
@@ -520,29 +597,34 @@ def handle_replica(master_socket: socket.socket):
                     # Try to parse one command from the buffer
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
+                    print(f"[DEBUG] Parsed command: {cmd}, consumed: {consumed} bytes")
                     buffer = buffer[consumed:]  # remove parsed command
                     
                     # Execute the command BEFORE updating offset for GETACK
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
+                        print(f"[DEBUG] Processing GETACK, current offset: {server_status['repl_offset']}")
                         # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
                         repl_offset += consumed
                         server_status["repl_offset"] = str(repl_offset)
+                        print(f"[DEBUG] Updated offset to: {server_status['repl_offset']}")
                     else:
                         # For all other commands, update offset first then execute
                         repl_offset += consumed
                         server_status["repl_offset"] = str(repl_offset)
+                        print(f"[DEBUG] Updated offset to: {server_status['repl_offset']}")
                         find_cmd(cmd, master_socket, elements)
 
-                except ValueError:
+                except ValueError as e:
                     # Incomplete command, wait for more data
+                    print(f"[DEBUG] Incomplete command: {e}")
                     break
 
         except Exception as e:
-            print(f"Replica connection error: {e}")
-            break
-
-            
+            print(f"[DEBUG] Replica connection error: {e}")
+            import traceback
+            traceback.print_exc()
+            break            
 
             
 
