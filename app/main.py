@@ -377,7 +377,8 @@ def psync_cmd(client: socket.socket, elements: list):
     return None
 
 def wait_cmd(client: socket.socket, elements: list):
-    return f":0\r\n"
+    list_of_replicas = server_status["replicas"]
+    return f":{len(list_of_replicas)}\r\n"
         
 
 
