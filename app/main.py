@@ -586,8 +586,6 @@ def main():
         response = master_socket.recv(1024)
         master_socket.sendall(make_resp_command("PSYNC", "?", "-1"))
         response = master_socket.recv(1024)
-        master_socket.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-        response = master_socket.recv(1024)
         threading.Thread(
             target=handle_replica,
             args=(master_socket, ),
