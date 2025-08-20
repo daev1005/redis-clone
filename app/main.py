@@ -348,7 +348,7 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        return f"REPLCONF ACK 0"
+        client.sendall(f"REPLCONF ACK 0".encode())
     else:
         return f"+OK\r\n"
 
@@ -403,7 +403,7 @@ def find_cmd(cmd, client: socket.socket, elements: list):
     return result
 
 def write_to_replicas(cmd, elements):
-    write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd", "replconf"}
+    write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
     dead_replicas = []
     if cmd in write_commands:
             for replicated_client in server_status["replicas"]:
@@ -517,10 +517,7 @@ def handle_replica(master_socket: socket.socket):
                     buffer = buffer[len(cmd_bytes):]  # remove parsed command
 
                     # Execute the command without sending a reply
-                    if cmd == "REPLCONF":
-                        master_socket.sendall(find_cmd(cmd, master_socket, elements))
-                    else:
-                        find_cmd(cmd, master_socket, elements)
+                    find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
                     # Incomplete command, wait for more data
