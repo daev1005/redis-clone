@@ -347,6 +347,8 @@ def info_cmd(client: socket.socket, elements: list):
         )
 
 def replconf_cmd(client: socket.socket, elements: list):
+    if elements[1].lower() == "getack":
+        client.sendall(b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n")
     return f"+OK\r\n"
 
 def psync_cmd(client: socket.socket, elements: list):
@@ -418,28 +420,35 @@ def write_to_replicas(cmd, elements):
 
 # Parses the command from the client input.
 def parse_command(data: bytes):
-    input = data.decode()
-    lines = input.split("\r\n")
+    input_str = data.decode()
+    lines = input_str.split("\r\n")
+
     if not lines[0].startswith("*"):
         raise ValueError("Invalid command format")
+
     num_elements = int(lines[0][1:])
     elements = []
     index = 1
     for _ in range(num_elements):
+        if index >= len(lines) - 1:
+            raise ValueError("Incomplete command")
         if not lines[index].startswith("$"):
             raise ValueError("Invalid element format")
         lengthOfElement = int(lines[index][1:])
-        ##Index of the actual element
         index += 1
+        if index >= len(lines):
+            raise ValueError("Incomplete command")
         element = lines[index]
-        if (lengthOfElement != len(element)):
-            raise ValueError(f"Element length mismatch. Expected {lengthOfElement}, got {len(element)}")
+        if lengthOfElement != len(element):
+            raise ValueError("Element length mismatch")
         elements.append(element)
-
-        ##Move to the next element
         index += 1
+
+    # Figure out how many raw bytes we actually consumed
     raw = "\r\n".join(lines[:index]) + "\r\n"
-    return elements, len(raw.encode())
+    consumed = len(raw.encode())
+
+    return elements, consumed
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -447,7 +456,7 @@ def handle_client(client: socket.socket):
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
-        elements = parse_command(input)
+        elements, _ = parse_command(input)
         cmd = elements[0].lower()
         
         if "multi" == cmd:
@@ -506,15 +515,15 @@ def handle_replica(master_socket: socket.socket):
                 try:
                     # Try to parse one command from the buffer
                     elements, consumed = parse_command(buffer)
-                    buffer = buffer[consumed:]
                     cmd = elements[0].lower()
 
+                    # Find out how many bytes this command used
+                    # Re-encode to count bytes exactly
+                    cmd_bytes = make_resp_command(*elements)
+                    buffer = buffer[len(cmd_bytes):]  # remove parsed command
+
                     # Execute the command without sending a reply
-                    if cmd == "replconf" and elements[1].lower() == "getack":
-                        response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
-                        master_socket.sendall(response.encode())
-                    else:
-                        find_cmd(cmd, master_socket, elements)
+                    find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
                     # Incomplete command, wait for more data
