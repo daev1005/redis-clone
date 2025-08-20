@@ -510,6 +510,7 @@ def handle_replica(master_socket: socket.socket):
                     # Try to parse one command from the buffer
                     elements = parse_command(buffer)
                     cmd = elements[0].lower()
+                    is_getack = elements[1].lower()
 
                     # Find out how many bytes this command used
                     # Re-encode to count bytes exactly
@@ -518,7 +519,7 @@ def handle_replica(master_socket: socket.socket):
 
                     # Execute the command without sending a reply
                     response = find_cmd(cmd, master_socket, elements)
-                    if cmd == "replconf":
+                    if cmd == "replconf" and is_getack == "getack":
                         master_socket.sendall(response.encode())
 
                 except ValueError:
