@@ -636,98 +636,87 @@ def handle_replica(master_socket: socket.socket):
     sys.stdout.flush()
     
     buffer = b""
+    repl_offset = 0
     server_status["repl_offset"] = "0"
     
-    # Try to read any pending data immediately
-    try:
-        master_socket.settimeout(0.1)  # 100ms timeout
-        pending_data = master_socket.recv(4096)
-        if pending_data:
-            print(f"[DEBUG] Found pending data: {len(pending_data)} bytes")
-            print(f"[DEBUG] Data preview: {pending_data[:100]}...")
-            buffer += pending_data
-        else:
-            print("[DEBUG] No pending data")
-    except socket.timeout:
-        print("[DEBUG] No immediate data available")
-    except Exception as e:
-        print(f"[DEBUG] Error reading pending data: {e}")
-    
-    # Reset to blocking
-    master_socket.settimeout(None)
-    sys.stdout.flush()
-    
-    # Process any data we already have in the buffer
-    if buffer:
-        print(f"[DEBUG] Processing buffer with {len(buffer)} bytes")
-        
-        # Skip FULLRESYNC response if present
-        if buffer.startswith(b'+FULLRESYNC'):
-            end_of_line = buffer.find(b'\r\n')
-            if end_of_line != -1:
-                print(f"[DEBUG] Skipping FULLRESYNC response")
-                buffer = buffer[end_of_line + 2:]
-        
-        # Look for REPLCONF GETACK command
-        if b'REPLCONF' in buffer and b'GETACK' in buffer:
-            print("[DEBUG] Found REPLCONF GETACK in buffer!")
-            
-            # Send simple response
-            response = b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
-            print(f"[DEBUG] Sending response: {response}")
-            sys.stdout.flush()
-            
-            try:
-                master_socket.sendall(response)
-                print("[DEBUG] Response sent successfully!")
-            except Exception as e:
-                print(f"[DEBUG] Error sending response: {e}")
-            
-            sys.stdout.flush()
-    
-    # Continue normal processing loop
     while True:
-        try:            
+        try:
             data = master_socket.recv(1024)
-            print(f"[DEBUG] recv() returned, data length: {len(data) if data else 'None'}")
-            sys.stdout.flush()
-            
             if not data:
-                print("[DEBUG] Master connection closed (no data)")
+                print("[DEBUG] Master connection closed")
                 break
-            
-            print(f"[DEBUG] Received data: {data[:50]}..." if len(data) > 50 else f"[DEBUG] Received data: {data}")
-            sys.stdout.flush()
-            
+                
+            print(f"[DEBUG] Received {len(data)} bytes")
             buffer += data
             
-            # Simple test - just look for REPLCONF GETACK
-            if b'REPLCONF' in buffer and b'GETACK' in buffer:
-                print("[DEBUG] Found REPLCONF GETACK in buffer!")
-                sys.stdout.flush()
+            # Skip FULLRESYNC response if it's at the start
+            if buffer.startswith(b'+FULLRESYNC'):
+                end_of_line = buffer.find(b'\r\n')
+                if end_of_line != -1:
+                    print("[DEBUG] Skipping FULLRESYNC response")
+                    buffer = buffer[end_of_line + 2:]
+                    continue
+            
+            # Skip RDB file if present
+            if buffer.startswith(b'$'):
+                end_of_length = buffer.find(b'\r\n')
+                if end_of_length == -1:
+                    continue  # Wait for complete length
                 
-                # Send a simple response
-                response = b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
-                print(f"[DEBUG] Sending response: {response}")
-                sys.stdout.flush()
+                rdb_length = int(buffer[1:end_of_length])
+                rdb_end = end_of_length + 2 + rdb_length
                 
-                master_socket.sendall(response)
-                print("[DEBUG] Response sent!")
-                sys.stdout.flush()
+                if len(buffer) < rdb_end:
+                    continue  # Wait for complete RDB
                 
-                # Clear buffer after responding
-                buffer = b""
-                
+                print(f"[DEBUG] Skipping RDB file ({rdb_length} bytes)")
+                buffer = buffer[rdb_end:]
+                continue
+            
+            # Process commands
+            while buffer:
+                try:
+                    # Find start of command
+                    if not buffer.startswith(b'*'):
+                        star_pos = buffer.find(b'*')
+                        if star_pos == -1:
+                            break
+                        buffer = buffer[star_pos:]
+                    
+                    elements, consumed = parse_command(buffer)
+                    cmd = elements[0].lower()
+                    print(f"[DEBUG] Parsed command: {cmd}, consumed: {consumed} bytes")
+                    
+                    buffer = buffer[consumed:]
+                    
+                    # Handle GETACK: respond with current offset, then update
+                    if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
+                        current_offset = server_status["repl_offset"]
+                        response = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(current_offset)}\r\n{current_offset}\r\n"
+                        print(f"[DEBUG] GETACK: responding with offset {current_offset}")
+                        master_socket.sendall(response.encode())
+                        
+                        # Update offset after responding
+                        repl_offset += consumed
+                        server_status["repl_offset"] = str(repl_offset)
+                        print(f"[DEBUG] Updated offset to: {repl_offset}")
+                    else:
+                        # For other commands, update offset first
+                        repl_offset += consumed
+                        server_status["repl_offset"] = str(repl_offset)
+                        print(f"[DEBUG] Command {cmd}: updated offset to {repl_offset}")
+                        
+                except ValueError as e:
+                    print(f"[DEBUG] Incomplete command: {e}")
+                    break
+                    
         except Exception as e:
-            print(f"[DEBUG] Exception in handle_replica: {e}")
+            print(f"[DEBUG] Error: {e}")
             import traceback
             traceback.print_exc()
-            sys.stdout.flush()
             break
     
-    print("[DEBUG] handle_replica thread ending")
-    sys.stdout.flush()
-
+    print("[DEBUG] handle_replica ending")
             
 
     
