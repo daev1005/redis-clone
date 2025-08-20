@@ -713,10 +713,10 @@ def main():
         )
         replica_thread.start()
         
-        # Give the thread a moment to start up
-        import time
-        time.sleep(0.1)
-        print("[DEBUG] Replica thread started, continuing with server setup")
+        # # Give the thread a moment to start up
+        # import time
+        # time.sleep(0.1)
+        # print("[DEBUG] Replica thread started, continuing with server setup")
 
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
