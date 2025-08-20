@@ -511,11 +511,9 @@ def parse_command(data: bytes):
 
     # Figure out how many raw bytes we actually consumed
     raw = "\r\n".join(lines[:index]) + "\r\n"
-    consumed_from_command = len(raw.encode())
-    # Total consumed includes any bytes we skipped to find the command
-    total_consumed = start_pos + consumed_from_command
+    consumed = len(raw.encode())
 
-    return elements, total_consumed
+    return elements, consumed
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -584,7 +582,7 @@ def handle_replica(master_socket: socket.socket):
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     buffer = buffer[consumed:]  # remove parsed command
-                    command_bytes = len(make_resp_command(*elements))
+                    
                     # Execute the command BEFORE updating offset for GETACK
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
