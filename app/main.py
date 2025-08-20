@@ -458,9 +458,60 @@ def write_to_replicas(cmd, elements):
                 
 
 
-# Parses the command from the client input.
+# # Parses the command from the client input.
+# def parse_command(data: bytes):
+#     input_str = data.decode()
+#     lines = input_str.split("\r\n")
+
+#     if not lines[0].startswith("*"):
+#         raise ValueError("Invalid command format")
+
+#     num_elements = int(lines[0][1:])
+#     elements = []
+#     index = 1
+#     for _ in range(num_elements):
+#         if index >= len(lines) - 1:
+#             raise ValueError("Incomplete command")
+#         if not lines[index].startswith("$"):
+#             raise ValueError("Invalid element format")
+#         lengthOfElement = int(lines[index][1:])
+#         index += 1
+#         if index >= len(lines):
+#             raise ValueError("Incomplete command")
+#         element = lines[index]
+#         if lengthOfElement != len(element):
+#             raise ValueError("Element length mismatch")
+#         elements.append(element)
+#         index += 1
+
+#     # Figure out how many raw bytes we actually consumed
+#     raw = "\r\n".join(lines[:index]) + "\r\n"
+#     consumed = len(raw.encode())
+
+#     return elements, consumed
+
 def parse_command(data: bytes):
-    input_str = data.decode()
+    """
+    Parse RESP command from bytes, handling cases where buffer might contain
+    binary data (like RDB files) before the actual command.
+    """
+    # Find the start of a RESP command (starts with *)
+    start_pos = 0
+    while start_pos < len(data):
+        if data[start_pos:start_pos+1] == b'*':
+            break
+        start_pos += 1
+    
+    if start_pos >= len(data):
+        raise ValueError("No RESP command found in buffer")
+    
+    # Try to decode from the * position onwards
+    try:
+        command_data = data[start_pos:]
+        input_str = command_data.decode('utf-8')
+    except UnicodeDecodeError:
+        raise ValueError("Cannot decode command as UTF-8")
+    
     lines = input_str.split("\r\n")
 
     if not lines[0].startswith("*"):
@@ -486,9 +537,11 @@ def parse_command(data: bytes):
 
     # Figure out how many raw bytes we actually consumed
     raw = "\r\n".join(lines[:index]) + "\r\n"
-    consumed = len(raw.encode())
+    consumed_from_command = len(raw.encode())
+    # Total consumed includes any bytes we skipped to find the command
+    total_consumed = start_pos + consumed_from_command
 
-    return elements, consumed
+    return elements, total_consumed
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
