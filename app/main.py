@@ -516,11 +516,7 @@ def handle_replica(master_socket: socket.socket):
                     # Try to parse one command from the buffer
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
-
-                    # Find out how many bytes this command used
-                    # Re-encode to count bytes exactly
-                    cmd_bytes = make_resp_command(*elements)
-                    buffer = buffer[len(cmd_bytes):]  # remove parsed command
+                    buffer = buffer[consumed:]  # remove parsed command
 
                     # Execute the command without sending a reply
                     find_cmd(cmd, master_socket, elements)
