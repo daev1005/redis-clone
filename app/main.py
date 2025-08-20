@@ -700,7 +700,7 @@ def make_resp_command(*parts: str):
 #         thread.start()
 
 # if __name__ == "__main__":
-#     main()
+#     main(
 
 
 def main():
