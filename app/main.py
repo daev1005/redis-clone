@@ -403,41 +403,18 @@ command_map = {
     "psync": psync_cmd
 }
 
-# def find_cmd(cmd, client: socket.socket, elements: list):
-#     # Execute the command on the master first
-#     result = None
-#     if cmd in command_map:
-#         result = command_map[cmd](client, elements)
-#     else:
-#         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
-#         return None
-
-#     # Only replicate write commands if we're a master
-#     if server_status["server_role"] == "master":
-#         write_to_replicas(cmd, elements)
-
-#     return result
-
 def find_cmd(cmd, client: socket.socket, elements: list):
-    print(f"[DEBUG] find_cmd called with cmd='{cmd}', elements={elements}")
-    
     # Execute the command on the master first
     result = None
     if cmd in command_map:
-        print(f"[DEBUG] Found {cmd} in command_map, calling handler")
         result = command_map[cmd](client, elements)
-        print(f"[DEBUG] Handler returned: {result}")
     else:
-        print(f"[DEBUG] Unknown command: {cmd}")
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
         return None
 
     # Only replicate write commands if we're a master
     if server_status["server_role"] == "master":
-        print(f"[DEBUG] Replicating to replicas (we are master)")
         write_to_replicas(cmd, elements)
-    else:
-        print(f"[DEBUG] Not replicating (we are {server_status['server_role']})")
 
     return result
 
@@ -700,7 +677,7 @@ def make_resp_command(*parts: str):
 #         thread.start()
 
 # if __name__ == "__main__":
-#     main(
+#     main()
 
 
 def main():
