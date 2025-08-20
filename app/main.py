@@ -357,12 +357,9 @@ def info_cmd(client: socket.socket, elements: list):
 #         return f"+OK\r\n"
 
 def replconf_cmd(client: socket.socket, elements: list):
-    print(f"[DEBUG] replconf_cmd called with elements: {elements}")
     if len(elements) > 1 and elements[1].lower() == "getack":
         repl_offset = server_status["repl_offset"]
         response = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n"
-        print(f"[DEBUG] Sending REPLCONF ACK {repl_offset}")
-        print(f"[DEBUG] Response bytes: {response.encode()}")
         client.sendall(response.encode())
         print(f"[DEBUG] Response sent successfully")
     else:
@@ -637,49 +634,6 @@ def make_resp_command(*parts: str):
     return resp.encode()       
 
 
-# def main():
-#     global server_status
-#     PORT = 6379  # default
-
-#     #Parse through server start command and get the port
-#     if "--port" in sys.argv:
-#         port_index = sys.argv.index("--port") + 1
-#         if port_index < len(sys.argv):
-#             PORT = int(sys.argv[port_index])
-#     if "--replicaof" in sys.argv:
-#         master_info = sys.argv[sys.argv.index("--replicaof") + 1].split()
-#         server_status["server_role"] = "slave"
-#         master_host = master_info[0]
-#         master_port = int(master_info[1])
-#         master_socket = socket.create_connection((master_host, master_port))
-#         master_socket.sendall(make_resp_command("PING"))
-#         response = master_socket.recv(1024) #pauses code until the connection actually receives something
-#         master_socket.sendall(make_resp_command("REPLCONF", "listening-port", str(PORT)))
-#         response = master_socket.recv(1024)
-#         master_socket.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
-#         response = master_socket.recv(1024)
-#         master_socket.sendall(make_resp_command("PSYNC", "?", "-1"))
-#         response = master_socket.recv(1024)
-#         threading.Thread(
-#             target=handle_replica,
-#             args=(master_socket, ),
-#             daemon=True,
-#         ).start()
-
-        
-
-#     print(f"Starting server on port {PORT}")
-#     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
-#     while True:
-#         connection,_ = server_socket.accept() # wait for client
-#         thread = threading.Thread(target=handle_client, args=(connection,))
-#         thread.daemon = True
-#         thread.start()
-
-# if __name__ == "__main__":
-#     main()
-
-
 def main():
     global server_status
     PORT = 6379  # default
@@ -712,11 +666,6 @@ def main():
             daemon=True,
         )
         replica_thread.start()
-        
-        # # Give the thread a moment to start up
-        # import time
-        # time.sleep(0.1)
-        # print("[DEBUG] Replica thread started, continuing with server setup")
 
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
