@@ -375,6 +375,9 @@ def psync_cmd(client: socket.socket, elements: list):
         client.sendall(b"$" + str(len(bytes.fromhex(empty_rdb_hex))).encode() + b"\r\n" + bytes.fromhex(empty_rdb_hex))
         server_status["replicas"].append(client)
     return None
+
+def wait_cmd(client: socket.socket, elements: list):
+    return f":0\r\n"
         
 
 
@@ -397,7 +400,8 @@ command_map = {
     "incr": incr_cmd,
     "info": info_cmd,
     "replconf": replconf_cmd,
-    "psync": psync_cmd
+    "psync": psync_cmd,
+    "wait": wait_cmd
 }
 
 def find_cmd(cmd, client: socket.socket, elements: list):
