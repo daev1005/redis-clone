@@ -349,7 +349,7 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n{offset}\r\n".encode())
+        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(offset))}\r\n{str(offset)}\r\n".encode())
     else:
         return f"+OK\r\n"
 
