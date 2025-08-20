@@ -391,8 +391,6 @@ command_map = {
 }
 
 def find_cmd(cmd, client: socket.socket, elements: list):
-    
-
     # Execute the command on the master first
     result = None
     if cmd in command_map:
@@ -401,8 +399,9 @@ def find_cmd(cmd, client: socket.socket, elements: list):
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
         return None
 
-    # Only replicate write commands
-    write_to_replicas(cmd, elements)
+    # Only replicate write commands if we're a master
+    if server_status["server_role"] == "master":
+        write_to_replicas(cmd, elements)
 
     return result
 
