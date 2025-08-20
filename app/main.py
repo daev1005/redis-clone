@@ -348,7 +348,7 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        return f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
+        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n".encode())
     else:
         return f"+OK\r\n"
 
@@ -516,9 +516,7 @@ def handle_replica(master_socket: socket.socket):
                     buffer = buffer[len(cmd_bytes):]  # remove parsed command
 
                     # Execute the command without sending a reply
-                    response = find_cmd(cmd, master_socket, elements)
-                    if cmd == "replconf":
-                        master_socket.sendall(response.encode())
+                    find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
                     # Incomplete command, wait for more data
