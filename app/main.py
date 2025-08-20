@@ -8,7 +8,8 @@ server_status = {
     "server_role": "master",
     "repl_id": "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb",
     "repl_offset": "0",
-    "replicas": []}
+    "replicas": []
+    }
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
@@ -16,7 +17,7 @@ list_locks = defaultdict(threading.Lock)
 store = {}
 expiration_time = {}
 queued = {}
-offset = 0
+
 
 
 def ping_cmd(client: socket.socket, elements: list):
@@ -349,7 +350,8 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(str(offset))}\r\n{str(offset)}\r\n".encode())
+        repl_offset = server_status["repl_offset"]
+        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n".encode())
     else:
         return f"+OK\r\n"
 
@@ -505,7 +507,7 @@ def handle_client(client: socket.socket):
 
 def handle_replica(master_socket: socket.socket):
     buffer = b""  # accumulate incoming data
-    global offset
+    repl_offset = int(server_status["repl_offset"])
     while True:
         try:
             data = master_socket.recv(1024)
@@ -519,7 +521,8 @@ def handle_replica(master_socket: socket.socket):
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     buffer = buffer[consumed:]  # remove parsed command
-                    offset += consumed
+                    repl_offset += consumed
+                    server_status["repl_offset"] = str(repl_offset)
                     # Execute the command without sending a reply
                     find_cmd(cmd, master_socket, elements)
 
