@@ -633,10 +633,10 @@ def handle_client(client: socket.socket):
 
 def handle_replica(master_socket: socket.socket):
     print("[DEBUG] handle_replica thread started!")
-    print(f"[DEBUG] Master socket: {master_socket}")
     sys.stdout.flush()
     
     buffer = b""
+    server_status["repl_offset"] = "0"
     
     # Try to read any pending data immediately
     try:
@@ -644,6 +644,7 @@ def handle_replica(master_socket: socket.socket):
         pending_data = master_socket.recv(4096)
         if pending_data:
             print(f"[DEBUG] Found pending data: {len(pending_data)} bytes")
+            print(f"[DEBUG] Data preview: {pending_data[:100]}...")
             buffer += pending_data
         else:
             print("[DEBUG] No pending data")
@@ -656,6 +657,35 @@ def handle_replica(master_socket: socket.socket):
     master_socket.settimeout(None)
     sys.stdout.flush()
     
+    # Process any data we already have in the buffer
+    if buffer:
+        print(f"[DEBUG] Processing buffer with {len(buffer)} bytes")
+        
+        # Skip FULLRESYNC response if present
+        if buffer.startswith(b'+FULLRESYNC'):
+            end_of_line = buffer.find(b'\r\n')
+            if end_of_line != -1:
+                print(f"[DEBUG] Skipping FULLRESYNC response")
+                buffer = buffer[end_of_line + 2:]
+        
+        # Look for REPLCONF GETACK command
+        if b'REPLCONF' in buffer and b'GETACK' in buffer:
+            print("[DEBUG] Found REPLCONF GETACK in buffer!")
+            
+            # Send simple response
+            response = b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
+            print(f"[DEBUG] Sending response: {response}")
+            sys.stdout.flush()
+            
+            try:
+                master_socket.sendall(response)
+                print("[DEBUG] Response sent successfully!")
+            except Exception as e:
+                print(f"[DEBUG] Error sending response: {e}")
+            
+            sys.stdout.flush()
+    
+    # Continue normal processing loop
     while True:
         try:            
             data = master_socket.recv(1024)
