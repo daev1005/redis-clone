@@ -443,8 +443,8 @@ def parse_command(data: bytes):
     
     if start_pos >= len(data):
         raise ValueError("No RESP command found in buffer")
-    
-    input_str = data.decode()
+    command_data = data[start_pos:]
+    input_str = command_data.decode()
     lines = input_str.split("\r\n")
 
     if not lines[0].startswith("*"):
