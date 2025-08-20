@@ -632,68 +632,71 @@ def handle_client(client: socket.socket):
 #             break
 
 def handle_replica(master_socket: socket.socket):
-    print("[DEBUG] handle_replica started")
+    print("[DEBUG] handle_replica thread started!")
+    print(f"[DEBUG] Master socket: {master_socket}")
+    sys.stdout.flush()
+    
     buffer = b""
-    repl_offset = 0
-    server_status["repl_offset"] = "0"
-    rdb_skipped = False  # Track if we've skipped the RDB file
+    
+    # Try to read any pending data immediately
+    try:
+        master_socket.settimeout(0.1)  # 100ms timeout
+        pending_data = master_socket.recv(4096)
+        if pending_data:
+            print(f"[DEBUG] Found pending data: {len(pending_data)} bytes")
+            buffer += pending_data
+        else:
+            print("[DEBUG] No pending data")
+    except socket.timeout:
+        print("[DEBUG] No immediate data available")
+    except Exception as e:
+        print(f"[DEBUG] Error reading pending data: {e}")
+    
+    # Reset to blocking
+    master_socket.settimeout(None)
+    sys.stdout.flush()
     
     while True:
-        try:
+        try:            
             data = master_socket.recv(1024)
+            print(f"[DEBUG] recv() returned, data length: {len(data) if data else 'None'}")
+            sys.stdout.flush()
+            
             if not data:
-                print("[DEBUG] Master connection closed")
+                print("[DEBUG] Master connection closed (no data)")
                 break
             
-            print(f"[DEBUG] Received {len(data)} bytes")
+            print(f"[DEBUG] Received data: {data[:50]}..." if len(data) > 50 else f"[DEBUG] Received data: {data}")
+            sys.stdout.flush()
+            
             buffer += data
-
-            while buffer:
-                try:
-                    print(f"[DEBUG] Trying to parse from buffer (length: {len(buffer)})")
-                    elements, consumed = parse_command(buffer)
-                    cmd = elements[0].lower()
-                    print(f"[DEBUG] Parsed command: {cmd}, consumed: {consumed} bytes")
-                    
-                    # If this is the first command after handshake and we consumed more bytes
-                    # than just the command itself, it means we skipped over RDB data
-                    if not rdb_skipped:
-                        # Calculate actual command size without RDB
-                        command_start = buffer.find(b'*')
-                        if command_start > 0:
-                            print(f"[DEBUG] Skipped {command_start} bytes of RDB data")
-                            actual_consumed = consumed - command_start
-                        else:
-                            actual_consumed = consumed
-                        rdb_skipped = True
-                    else:
-                        actual_consumed = consumed
-                    
-                    buffer = buffer[consumed:]
-                    
-                    # Handle GETACK: respond with current offset, then update offset
-                    if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
-                        print(f"[DEBUG] Processing GETACK, current offset: {server_status['repl_offset']}")
-                        find_cmd(cmd, master_socket, elements)
-                        repl_offset += actual_consumed
-                        server_status["repl_offset"] = str(repl_offset)
-                        print(f"[DEBUG] Updated offset after GETACK to: {server_status['repl_offset']}")
-                    else:
-                        # For other commands, update offset first then execute
-                        repl_offset += actual_consumed
-                        server_status["repl_offset"] = str(repl_offset)
-                        print(f"[DEBUG] Updated offset to: {server_status['repl_offset']}")
-                        find_cmd(cmd, master_socket, elements)
-                        
-                except ValueError as e:
-                    print(f"[DEBUG] Incomplete command: {e}")
-                    break
-                    
+            
+            # Simple test - just look for REPLCONF GETACK
+            if b'REPLCONF' in buffer and b'GETACK' in buffer:
+                print("[DEBUG] Found REPLCONF GETACK in buffer!")
+                sys.stdout.flush()
+                
+                # Send a simple response
+                response = b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
+                print(f"[DEBUG] Sending response: {response}")
+                sys.stdout.flush()
+                
+                master_socket.sendall(response)
+                print("[DEBUG] Response sent!")
+                sys.stdout.flush()
+                
+                # Clear buffer after responding
+                buffer = b""
+                
         except Exception as e:
-            print(f"[DEBUG] Replica connection error: {e}")
+            print(f"[DEBUG] Exception in handle_replica: {e}")
             import traceback
             traceback.print_exc()
-            break  
+            sys.stdout.flush()
+            break
+    
+    print("[DEBUG] handle_replica thread ending")
+    sys.stdout.flush()
 
             
 
