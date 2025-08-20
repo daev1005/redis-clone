@@ -633,51 +633,67 @@ def handle_client(client: socket.socket):
 
 def handle_replica(master_socket: socket.socket):
     print("[DEBUG] handle_replica started")
-    buffer = b""  # accumulate incoming data
-    repl_offset = int(server_status["repl_offset"])
+    buffer = b""
+    repl_offset = 0
+    server_status["repl_offset"] = "0"
+    rdb_skipped = False  # Track if we've skipped the RDB file
+    
     while True:
         try:
             data = master_socket.recv(1024)
             if not data:
                 print("[DEBUG] Master connection closed")
-                break  # connection closed
+                break
             
-            print(f"[DEBUG] Received {len(data)} bytes: {data}")
+            print(f"[DEBUG] Received {len(data)} bytes")
             buffer += data
 
-            while True:
+            while buffer:
                 try:
-                    # Try to parse one command from the buffer
+                    print(f"[DEBUG] Trying to parse from buffer (length: {len(buffer)})")
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     print(f"[DEBUG] Parsed command: {cmd}, consumed: {consumed} bytes")
-                    buffer = buffer[consumed:]  # remove parsed command
                     
-                    # Execute the command BEFORE updating offset for GETACK
+                    # If this is the first command after handshake and we consumed more bytes
+                    # than just the command itself, it means we skipped over RDB data
+                    if not rdb_skipped:
+                        # Calculate actual command size without RDB
+                        command_start = buffer.find(b'*')
+                        if command_start > 0:
+                            print(f"[DEBUG] Skipped {command_start} bytes of RDB data")
+                            actual_consumed = consumed - command_start
+                        else:
+                            actual_consumed = consumed
+                        rdb_skipped = True
+                    else:
+                        actual_consumed = consumed
+                    
+                    buffer = buffer[consumed:]
+                    
+                    # Handle GETACK: respond with current offset, then update offset
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         print(f"[DEBUG] Processing GETACK, current offset: {server_status['repl_offset']}")
-                        # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
-                        repl_offset += consumed
+                        repl_offset += actual_consumed
                         server_status["repl_offset"] = str(repl_offset)
-                        print(f"[DEBUG] Updated offset to: {server_status['repl_offset']}")
+                        print(f"[DEBUG] Updated offset after GETACK to: {server_status['repl_offset']}")
                     else:
-                        # For all other commands, update offset first then execute
-                        repl_offset += consumed
+                        # For other commands, update offset first then execute
+                        repl_offset += actual_consumed
                         server_status["repl_offset"] = str(repl_offset)
                         print(f"[DEBUG] Updated offset to: {server_status['repl_offset']}")
                         find_cmd(cmd, master_socket, elements)
-
+                        
                 except ValueError as e:
-                    # Incomplete command, wait for more data
                     print(f"[DEBUG] Incomplete command: {e}")
                     break
-
+                    
         except Exception as e:
             print(f"[DEBUG] Replica connection error: {e}")
             import traceback
             traceback.print_exc()
-            break            
+            break  
 
             
 
