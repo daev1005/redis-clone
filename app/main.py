@@ -794,9 +794,9 @@ def main():
         master_socket.sendall(make_resp_command("REPLCONF", "capa", "psync2"))
         response = master_socket.recv(1024)
         master_socket.sendall(make_resp_command("PSYNC", "?", "-1"))
-        response = master_socket.recv(1024)
+        # DON'T read the response here - let the replica thread handle everything after PSYNC
         
-        # Start the replica handler thread
+        # Start the replica handler thread immediately
         replica_thread = threading.Thread(
             target=handle_replica,
             args=(master_socket, ),
