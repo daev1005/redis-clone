@@ -432,43 +432,8 @@ def write_to_replicas(cmd, elements):
                 
 
 
-# # Parses the command from the client input.
-# def parse_command(data: bytes):
-#     input_str = data.decode()
-#     lines = input_str.split("\r\n")
-
-#     if not lines[0].startswith("*"):
-#         raise ValueError("Invalid command format")
-
-#     num_elements = int(lines[0][1:])
-#     elements = []
-#     index = 1
-#     for _ in range(num_elements):
-#         if index >= len(lines) - 1:
-#             raise ValueError("Incomplete command")
-#         if not lines[index].startswith("$"):
-#             raise ValueError("Invalid element format")
-#         lengthOfElement = int(lines[index][1:])
-#         index += 1
-#         if index >= len(lines):
-#             raise ValueError("Incomplete command")
-#         element = lines[index]
-#         if lengthOfElement != len(element):
-#             raise ValueError("Element length mismatch")
-#         elements.append(element)
-#         index += 1
-
-#     # Figure out how many raw bytes we actually consumed
-#     raw = "\r\n".join(lines[:index]) + "\r\n"
-#     consumed = len(raw.encode())
-
-#     return elements, consumed
-
+# Parses the command from the client input.
 def parse_command(data: bytes):
-    """
-    Parse RESP command from bytes, handling cases where buffer might contain
-    binary data (like RDB files) before the actual command.
-    """
     # Find the start of a RESP command (starts with *)
     start_pos = 0
     while start_pos < len(data):
@@ -479,13 +444,7 @@ def parse_command(data: bytes):
     if start_pos >= len(data):
         raise ValueError("No RESP command found in buffer")
     
-    # Try to decode from the * position onwards
-    try:
-        command_data = data[start_pos:]
-        input_str = command_data.decode('utf-8')
-    except UnicodeDecodeError:
-        raise ValueError("Cannot decode command as UTF-8")
-    
+    input_str = data.decode()
     lines = input_str.split("\r\n")
 
     if not lines[0].startswith("*"):
@@ -514,6 +473,57 @@ def parse_command(data: bytes):
     consumed = len(raw.encode())
 
     return elements, consumed
+
+# def parse_command(data: bytes):
+#     """
+#     Parse RESP command from bytes, handling cases where buffer might contain
+#     binary data (like RDB files) before the actual command.
+#     """
+#     # Find the start of a RESP command (starts with *)
+#     start_pos = 0
+#     while start_pos < len(data):
+#         if data[start_pos:start_pos+1] == b'*':
+#             break
+#         start_pos += 1
+    
+#     if start_pos >= len(data):
+#         raise ValueError("No RESP command found in buffer")
+    
+#     # Try to decode from the * position onwards
+#     try:
+#         command_data = data[start_pos:]
+#         input_str = command_data.decode('utf-8')
+#     except UnicodeDecodeError:
+#         raise ValueError("Cannot decode command as UTF-8")
+    
+#     lines = input_str.split("\r\n")
+
+#     if not lines[0].startswith("*"):
+#         raise ValueError("Invalid command format")
+
+#     num_elements = int(lines[0][1:])
+#     elements = []
+#     index = 1
+#     for _ in range(num_elements):
+#         if index >= len(lines) - 1:
+#             raise ValueError("Incomplete command")
+#         if not lines[index].startswith("$"):
+#             raise ValueError("Invalid element format")
+#         lengthOfElement = int(lines[index][1:])
+#         index += 1
+#         if index >= len(lines):
+#             raise ValueError("Incomplete command")
+#         element = lines[index]
+#         if lengthOfElement != len(element):
+#             raise ValueError("Element length mismatch")
+#         elements.append(element)
+#         index += 1
+
+#     # Figure out how many raw bytes we actually consumed
+#     raw = "\r\n".join(lines[:index]) + "\r\n"
+#     consumed = len(raw.encode())
+
+#     return elements, consumed
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -582,16 +592,16 @@ def handle_replica(master_socket: socket.socket):
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     buffer = buffer[consumed:]  # remove parsed command
-                    
+                    command_bytes = len(make_resp_command(*elements))
                     # Execute the command BEFORE updating offset for GETACK
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
-                        repl_offset += consumed
+                        repl_offset += command_bytes
                         server_status["repl_offset"] = str(repl_offset)
                     else:
                         # For all other commands, update offset first then execute
-                        repl_offset += consumed
+                        repl_offset += command_bytes
                         server_status["repl_offset"] = str(repl_offset)
                         find_cmd(cmd, master_socket, elements)
 
