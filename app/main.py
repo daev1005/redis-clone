@@ -521,10 +521,18 @@ def handle_replica(master_socket: socket.socket):
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     buffer = buffer[consumed:]  # remove parsed command
-                    repl_offset += consumed
-                    server_status["repl_offset"] = str(repl_offset)
-                    # Execute the command without sending a reply
-                    find_cmd(cmd, master_socket, elements)
+                    
+                    # Execute the command BEFORE updating offset for GETACK
+                    if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
+                        # Execute GETACK with current offset, then update offset
+                        find_cmd(cmd, master_socket, elements)
+                        repl_offset += consumed
+                        server_status["repl_offset"] = str(repl_offset)
+                    else:
+                        # For all other commands, update offset first then execute
+                        repl_offset += consumed
+                        server_status["repl_offset"] = str(repl_offset)
+                        find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
                     # Incomplete command, wait for more data
