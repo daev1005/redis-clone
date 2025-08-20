@@ -519,7 +519,7 @@ def handle_replica(master_socket: socket.socket):
 
                     # Execute the command without sending a reply
                     response = find_cmd(cmd, master_socket, elements)
-                    if cmd == "replconf" and is_getack == "getack":
+                    if cmd == "replconf":
                         master_socket.sendall(response.encode())
 
                 except ValueError:
