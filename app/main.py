@@ -589,11 +589,11 @@ def handle_replica(master_socket: socket.socket):
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
-                        repl_offset += command_bytes
+                        repl_offset += consumed
                         server_status["repl_offset"] = str(repl_offset)
                     else:
                         # For all other commands, update offset first then execute
-                        repl_offset += command_bytes
+                        repl_offset += consumed
                         server_status["repl_offset"] = str(repl_offset)
                         find_cmd(cmd, master_socket, elements)
 
