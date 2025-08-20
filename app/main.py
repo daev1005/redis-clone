@@ -438,8 +438,8 @@ def parse_command(data: bytes):
 
         ##Move to the next element
         index += 1
-    
-    return elements
+    raw = "\r\n".join(lines[:index]) + "\r\n"
+    return elements, len(raw.encode())
 
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
@@ -505,12 +505,9 @@ def handle_replica(master_socket: socket.socket):
             while True:
                 try:
                     # Try to parse one command from the buffer
-                    elements = parse_command(buffer)
+                    elements, consumed = parse_command(buffer)
+                    buffer = buffer[consumed:]
                     cmd = elements[0].lower()
-                    # Find out how many bytes this command used
-                    # Re-encode to count bytes exactly
-                    cmd_bytes = make_resp_command(*elements)
-                    buffer = buffer[len(cmd_bytes):]  # remove parsed command
 
                     # Execute the command without sending a reply
                     if cmd == "replconf" and elements[1].lower() == "getack":
