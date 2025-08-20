@@ -348,7 +348,7 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        return f"REPLCONF ACK 0"
+        return f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
     else:
         return f"+OK\r\n"
 
