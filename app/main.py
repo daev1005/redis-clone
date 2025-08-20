@@ -16,7 +16,6 @@ list_locks = defaultdict(threading.Lock)
 store = {}
 expiration_time = {}
 queued = {}
-offset = 0
 
 
 def ping_cmd(client: socket.socket, elements: list):
@@ -349,7 +348,7 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if elements[1].lower() == "getack":
-        client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n{offset}\r\n".encode())
+        client.sendall(b"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n")
     return f"+OK\r\n"
 
 def psync_cmd(client: socket.socket, elements: list):
@@ -504,7 +503,7 @@ def handle_client(client: socket.socket):
 
 def handle_replica(master_socket: socket.socket):
     buffer = b""  # accumulate incoming data
-    global offset
+
     while True:
         try:
             data = master_socket.recv(1024)
@@ -517,8 +516,12 @@ def handle_replica(master_socket: socket.socket):
                     # Try to parse one command from the buffer
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
-                    buffer = buffer[consumed:]  # remove parsed command
-                    offset += consumed
+
+                    # Find out how many bytes this command used
+                    # Re-encode to count bytes exactly
+                    cmd_bytes = make_resp_command(*elements)
+                    buffer = buffer[len(cmd_bytes):]  # remove parsed command
+
                     # Execute the command without sending a reply
                     find_cmd(cmd, master_socket, elements)
 
