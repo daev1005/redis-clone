@@ -424,7 +424,7 @@ def config_cmd(client: socket.socket, elements: list):
 def keys_cmd(client: socket.socket, elements: list):
     target_key = elements[1].lower()
     if target_key == "*":
-        return make_resp[*store]
+        return make_resp[*store.keys()]
 
         
 
