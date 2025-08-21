@@ -467,6 +467,7 @@ def make_resp(*parts: str):
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
 
+# Reading the rdb for keys
 def load_rdb_file(file_path):
     with open(file_path, "rb") as f:
         data = f.read()
@@ -479,8 +480,8 @@ def load_rdb_file(file_path):
 
     # Usually, the first 2 strings after header are: key and value
     if len(filtered) >= 2:
-        key = filtered[-2].decode("utf-8")
-        value = filtered[-1].decode("utf-8")
+        key = filtered[0]
+        value = filtered[1]
         store[key] = value
     return
 
