@@ -394,12 +394,7 @@ def wait_cmd(client: socket.socket, elements: list):
         if acknowledged >= num_replicas:
             break
 
-        # Re-send GETACK periodically
-        for replica in server_status["replicas"]:
-            try:
-                replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-            except Exception:
-                pass
+       
 
         time.sleep(0.05)
 
