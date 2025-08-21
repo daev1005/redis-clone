@@ -388,7 +388,7 @@ def wait_cmd(client: socket.socket, elements: list):
         for offsets in server_status["replica_offsets"].values():
             if offsets >= target_offset:
                 acknowledged += 1
-        for replica in server_status["replica_clients"]:
+        for replica in server_status["replicas"]:
             replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
         if acknowledged >= num_replicas:
             break
