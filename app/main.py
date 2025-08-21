@@ -424,7 +424,6 @@ def config_cmd(client: socket.socket, elements: list):
 
 def keys_cmd(client: socket.socket, elements: list):
     target_key = elements[1].lower()
-    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     if target_key == "*":
         return make_resp(*store.keys())
 
@@ -728,6 +727,7 @@ def main():
         replica_thread.start()
 
     print(f"Starting server on port {PORT}")
+    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
         connection,_ = server_socket.accept() # wait for client
