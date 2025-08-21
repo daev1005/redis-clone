@@ -469,6 +469,7 @@ def make_resp(*parts: str):
 
 # Reading the rdb for keys
 def load_rdb_file(file_path):
+    global store
     with open(file_path, "rb") as f:
         data = f.read()
 
@@ -489,6 +490,7 @@ def load_rdb_file(file_path):
         key = filtered[0]
         value = filtered[1]
         store[key] = value
+
     return
 
 def find_cmd(cmd, client: socket.socket, elements: list):
