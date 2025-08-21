@@ -444,17 +444,28 @@ def write_to_replicas(cmd, elements):
     write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
     dead_replicas = []
     if cmd in write_commands:
+        command_bytes = make_resp_command(*elements)
+        command_size = len(command_bytes)
+        getack_bytes = make_resp_command("REPLCONF", "GETACK", "*")
+        getack_size = len(getack_bytes)
+        
         for replicated_client in server_status["replicas"]:
-                try:
-                    replicated_client.sendall(make_resp_command(*elements))
-                    replicated_client.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-                except Exception:
-                    dead_replicas.append(replicated_client)
-            # read replica's reply
+            try:
+                replicated_client.sendall(command_bytes)
+                server_status["replica_offsets"][replicated_client] += command_size
+                
+                replicated_client.sendall(getack_bytes)
+                server_status["replica_offsets"][replicated_client] += getack_size
+            except Exception:
+                dead_replicas.append(replicated_client)
+        # read replica's reply (if needed)
         
         # clear at the end
         for r in dead_replicas:
-            server_status["replicas"].remove(r)    
+            server_status["replicas"].remove(r)
+            # Also remove from replica_offsets
+            if r in server_status["replica_offsets"]:
+                del server_status["replica_offsets"][r]
 
                 
 
@@ -567,16 +578,15 @@ def handle_replica(master_socket: socket.socket):
                     elements, consumed = parse_command(buffer)
                     cmd = elements[0].lower()
                     buffer = buffer[consumed:]  # remove parsed command
-                    command_bytes = len(make_resp_command(*elements))
+                    command_size = len(make_resp_command(*elements))
                     # Execute the command BEFORE updating offset for GETACK
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
-                        server_status["repl_offset"] += command_bytes
+                        server_status["repl_offset"] += command_size
                     else:
                         # For all other commands, update offset first then execute
-                        server_status["repl_offset"] += command_bytes
-                        server_status["replica_offsets"][master_socket] += command_bytes
+                        server_status["repl_offset"] += command_size
                         find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
