@@ -474,12 +474,13 @@ def load_rdb_file(file_path):
     # Skip the header "REDIS0011" (first 9 bytes)
     # Find the first printable strings after header
     import re
-    strings = re.findall(rb"[ -~]{1,}", data)  # extract ASCII printable sequences
+    strings = re.findall(rb"[ -~]{2,}", data)  # extract ASCII printable sequences
+    filtered = [s.decode("utf-8") for s in strings if not s.startswith(b"REDIS") and not s.startswith(b"redis")]
 
     # Usually, the first 2 strings after header are: key and value
-    if len(strings) >= 2:
-        key = strings[-2].decode("utf-8")
-        value = strings[-1].decode("utf-8")
+    if len(filtered) >= 2:
+        key = filtered[-2].decode("utf-8")
+        value = filtered[-1].decode("utf-8")
         store[key] = value
     return
 
