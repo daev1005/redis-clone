@@ -379,29 +379,39 @@ def wait_cmd(client: socket.socket, elements: list):
     num_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     timeout_sec = timeout_ms / 1000
-    start_time = time.time()
-
-    # Master offset at this moment
     target_offset = server_status["repl_offset"]
-    while True:
-        acknowledged = 0
-        print(f"[DEBUG] {target_offset}")
-        for replica in server_status["replicas"]:
-            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-        for offsets in server_status["replica_offsets"].values():
-            if offsets >= target_offset:
-                print(f"[DEBUG] {offsets}")
-                acknowledged += 1  
-        if acknowledged >= num_replicas:
-            break
 
-        # Timeout check
-        if time.time() - start_time >= timeout_sec:
-            break
+    def wait_worker():
+        start_time = time.time()
+        while True:
+            acknowledged = 0
 
-        
-        time.sleep(0.05)
-    return f":{acknowledged}\r\n"
+            # Count replicas that have reached the target offset
+            for offset in server_status["replica_offsets"].values():
+                if offset >= target_offset:
+                    acknowledged += 1
+
+            if acknowledged >= num_replicas:
+                break
+
+            if time.time() - start_time >= timeout_sec:
+                break
+
+            # Send GETACK to replicas that haven't reached target
+            for replica, offset in server_status["replica_offsets"].items():
+                if offset < target_offset:
+                    replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+
+            time.sleep(0.05)
+
+        # Send result back to client
+        try:
+            client.sendall(f":{acknowledged}\r\n".encode())
+        except Exception:
+            pass
+
+    threading.Thread(target=wait_worker, daemon=True).start()
+    return None
 
 
 
