@@ -353,9 +353,7 @@ def info_cmd(client: socket.socket, elements: list):
 def replconf_cmd(client: socket.socket, elements: list):
     if len(elements) > 1 and elements[1].lower() == "getack":
         offset = server_status["repl_offset"]  # replica’s current offset
-        print(f"[DEBUG] Received REPLCONF GETACK, sending ACK {server_status['repl_offset']}")
         client.sendall(make_resp_command("REPLCONF", "ACK", str(offset)))
-        print(f"[DEBUG] Response sent successfully")
     elif len(elements) > 1 and elements[1].lower() == "ack":
         offset = int(elements[2])
         server_status["replica_offsets"][client] = offset
@@ -406,14 +404,14 @@ def wait_cmd(client: socket.socket, elements: list):
     num_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     timeout_sec = timeout_ms / 1000
-    target_offset = server_status["repl_offset"]
+    target_offset = server_status["repl_offset"]  # after the write
 
     def wait_worker():
         start_time = time.time()
         while True:
             acknowledged = 0
 
-            # Count replicas that have reached the target offset
+            # Count replicas that have reached target offset
             for offset in server_status["replica_offsets"].values():
                 if offset >= target_offset:
                     acknowledged += 1
@@ -424,14 +422,16 @@ def wait_cmd(client: socket.socket, elements: list):
             if time.time() - start_time >= timeout_sec:
                 break
 
-            # Send GETACK to replicas that haven't reached target
-            for replica, offset in server_status["replica_offsets"].items():
-                if offset < target_offset:
+            # Send GETACK to all connected replicas
+            for replica in server_status["replica_clients"]:
+                try:
                     replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+                except Exception:
+                    pass
 
             time.sleep(0.05)
 
-        # Send result back to client
+        # Send final count back to client
         try:
             client.sendall(f":{acknowledged}\r\n".encode())
         except Exception:
@@ -439,7 +439,6 @@ def wait_cmd(client: socket.socket, elements: list):
 
     threading.Thread(target=wait_worker, daemon=True).start()
     return None
-
 
 
 
