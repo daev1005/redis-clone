@@ -421,7 +421,7 @@ def config_cmd(client: socket.socket, elements: list):
         elif parameter == "dbfilename":
             return make_resp("dbfilename", rdb_configs["dbfilename"])
 
-def key_cmd(client: socket.socket, elements: list):
+def keys_cmd(client: socket.socket, elements: list):
     target_key = elements[1].lower()
     if target_key == "*":
         return make_resp[*store]
@@ -450,7 +450,7 @@ command_map = {
     "psync": psync_cmd,
     "wait": wait_cmd,
     "config": config_cmd,
-    "keys": key_cmd
+    "keys": keys_cmd
 }
 
 def make_resp_command(*parts: str):
