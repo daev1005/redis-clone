@@ -575,6 +575,7 @@ def parse_command(data: bytes):
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     multi_called = False
+    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
@@ -727,7 +728,6 @@ def main():
         replica_thread.start()
 
     print(f"Starting server on port {PORT}")
-    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
         connection,_ = server_socket.accept() # wait for client
