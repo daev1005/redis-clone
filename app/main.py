@@ -15,7 +15,6 @@ blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
 list_locks = defaultdict(threading.Lock)  
-repl_lock = threading.Lock()
 store = {}
 expiration_time = {}
 queued = {}
@@ -376,12 +375,10 @@ def psync_cmd(client: socket.socket, elements: list):
 def wait_cmd(client: socket.socket, elements: list):
     specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
-    
-    with repl_lock:
-        current_offset = server_status["repl_offset"]
 
     start_time = time.time()
     timeout_sec = timeout_ms / 1000
+    acked_count = 0
 
     for replica_socket in server_status["replicas"]:
         if (time.time() - start_time) >= timeout_sec:
