@@ -357,15 +357,6 @@ def replconf_cmd(client: socket.socket, elements: list):
         
         client.sendall(response.encode())
         print(f"[DEBUG] Response sent successfully")
-    elif len(elements) > 1 and elements[1].lower() == "ack":
-        # Replica is sending ACK back to master
-        if len(elements) > 2:
-            try:
-                offset = int(elements[2])
-                server_status["replica_offsets"][client] = offset
-                print(f"[DEBUG] Stored ACK from replica {client} with offset {offset}")
-            except ValueError:
-                print(f"[WARN] Invalid ACK offset: {elements[2]}")
     else:
         print(f"[DEBUG] Non-GETACK REPLCONF command")
         return f"+OK\r\n"
@@ -389,20 +380,22 @@ def wait_cmd(client: socket.socket, elements: list):
 
     # Master offset at this moment
     target_offset = server_status["repl_offset"]
-
+    acknowledged = 0
     while True:
-        acked = sum(1 for off in server_status["replica_offsets"].values()
-                    if off >= target_offset)
+        for offsets in server_status["replica_offsets"].value():
+            if offsets >= target_offset:
+                acknowledged += 1
+        if acknowledged >= num_replicas:
+            break
 
-        if acked >= num_replicas:
-            return f":{acked}\r\n"
-
+        # Timeout check
         if time.time() - start_time >= timeout_sec:
-            return f":{acked}\r\n"
+            break
 
-        time.sleep(0.01)  # avoid busy-spin
-
-
+        for replica in server_status["replica_clients"]:
+            replica.sendall(b"REPLCONF GETACK *\r\n")
+        time.sleep(0.05)
+    return f":{acknowledged}\r\n"
 
 
 
@@ -449,16 +442,11 @@ def write_to_replicas(cmd, elements):
     if cmd in write_commands:
         command_bytes = make_resp_command(*elements)
         command_size = len(command_bytes)
-        getack_bytes = make_resp_command("REPLCONF", "GETACK", "*")
-        getack_size = len(getack_bytes)
         
         for replicated_client in server_status["replicas"]:
             try:
                 replicated_client.sendall(command_bytes)
                 server_status["replica_offsets"][replicated_client] += command_size
-                
-                replicated_client.sendall(getack_bytes)
-                server_status["replica_offsets"][replicated_client] += getack_size
             except Exception:
                 dead_replicas.append(replicated_client)
         # read replica's reply (if needed)
@@ -591,6 +579,7 @@ def handle_replica(master_socket: socket.socket):
                         # For all other commands, update offset first then execute
                         server_status["repl_offset"] += command_size
                         find_cmd(cmd, master_socket, elements)
+                        
 
                 except ValueError:
                     # Incomplete command, wait for more data
