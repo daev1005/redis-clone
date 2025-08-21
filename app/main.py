@@ -376,31 +376,32 @@ def wait_cmd(client: socket.socket, elements: list):
     num_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     timeout_sec = timeout_ms / 1000
-    target_offset = server_status["repl_offset"]  # offset after the write
+    target_offset = server_status["repl_offset"]
     start_time = time.time()
 
-    while True:
-        acknowledged = 0
+    acknowledged = 0
 
-        # Count replicas that have acknowledged this offset or more
-        for offset in server_status["replica_offsets"].values():
-            if offset >= target_offset:
-                acknowledged += 1
+    # Immediately request ACKs from all replicas
+    for replica in server_status["replicas"]:
+        try:
+            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+        except Exception:
+            pass
 
+    while time.time() - start_time < timeout_sec:
+        # Check ACK status
+        acknowledged = sum(1 for offset in server_status["replica_offsets"].values() if offset >= target_offset)
         if acknowledged >= num_replicas:
-            break  # required replicas reached
+            break
 
-        if time.time() - start_time >= timeout_sec:
-            break  # timeout reached
-
-        # Ask replicas for ACK
+        # Re-send GETACK periodically
         for replica in server_status["replicas"]:
             try:
                 replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
             except Exception:
                 pass
 
-        # time.sleep(0.05)  # small delay before checking again
+        time.sleep(0.05)
 
     return f":{acknowledged}\r\n"
 
