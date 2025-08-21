@@ -439,7 +439,6 @@ def find_cmd(cmd, client: socket.socket, elements: list):
     # Only replicate write commands if we're a master
     if server_status["server_role"] == "master":
         write_to_replicas(cmd, elements)
-        client.sendall(make_resp_command(["REPLCONF", "GETACK", "*"]))
     return result
 
 def write_to_replicas(cmd, elements):
@@ -449,6 +448,7 @@ def write_to_replicas(cmd, elements):
             for replicated_client in server_status["replicas"]:
                 try:
                     replicated_client.sendall(make_resp_command(*elements))
+                    replicated_client.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
                 except Exception:
                     dead_replicas.append(replicated_client)
 
