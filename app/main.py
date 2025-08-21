@@ -352,10 +352,9 @@ def info_cmd(client: socket.socket, elements: list):
 
 def replconf_cmd(client: socket.socket, elements: list):
     if len(elements) > 1 and elements[1].lower() == "getack":
-        repl_offset = str(server_status["repl_offset"])
-        response = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n"
-        
-        client.sendall(response.encode())
+        offset = server_status["repl_offset"]  # replica’s current offset
+        print(f"[DEBUG] Received REPLCONF GETACK, sending ACK {server_status['repl_offset']}")
+        client.sendall(make_resp_command("REPLCONF", "ACK", str(offset)))
         print(f"[DEBUG] Response sent successfully")
     elif len(elements) > 1 and elements[1].lower() == "ack":
         offset = int(elements[2])
@@ -374,6 +373,34 @@ def psync_cmd(client: socket.socket, elements: list):
         server_status["replicas"].append(client)
         server_status["replica_offsets"][client] = 0
     return None
+
+# def wait_cmd(client: socket.socket, elements: list):
+#     num_replicas = int(elements[1])
+#     timeout_ms = int(elements[2])
+#     timeout_sec = timeout_ms / 1000
+#     start_time = time.time()
+
+#     # Master offset at this moment
+#     target_offset = server_status["repl_offset"]
+#     while True:
+#         acknowledged = 0
+#         print(f"[DEBUG] {target_offset}")
+#         for replica in server_status["replicas"]:
+#             replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+#         for offsets in server_status["replica_offsets"].values():
+#             if offsets >= target_offset:
+#                 print(f"[DEBUG] {offsets}")
+#                 acknowledged += 1  
+#         if acknowledged >= num_replicas:
+#             break
+
+#         # Timeout check
+#         if time.time() - start_time >= timeout_sec:
+#             break
+
+        
+#         time.sleep(0.05)
+#     return f":{acknowledged}\r\n"
 
 def wait_cmd(client: socket.socket, elements: list):
     num_replicas = int(elements[1])
