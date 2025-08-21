@@ -382,7 +382,7 @@ def wait_cmd(client: socket.socket, elements: list):
     target_offset = server_status["repl_offset"]
     acknowledged = 0
     while True:
-        for offsets in server_status["replica_offsets"].value():
+        for offsets in server_status["replica_offsets"].values():
             if offsets >= target_offset:
                 acknowledged += 1
         if acknowledged >= num_replicas:
