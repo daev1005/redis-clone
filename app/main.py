@@ -417,9 +417,15 @@ def config_cmd(client: socket.socket, elements: list):
     parameter = elements[2].lower()
     if elements[1].lower() == "get":
         if parameter == "dir":
-            return make_command("dir", rdb_configs["dir"])
+            return make_resp("dir", rdb_configs["dir"])
         elif parameter == "dbfilename":
-            return make_command("dbfilename", rdb_configs["dbfilename"])
+            return make_resp("dbfilename", rdb_configs["dbfilename"])
+
+def key_cmd(client: socket.socket, elements: list):
+    target_key = elements[1].lower()
+    if target_key == "*":
+        return make_resp[*store]
+
         
 
 
@@ -451,7 +457,7 @@ def make_resp_command(*parts: str):
     for p in parts:
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp.encode()  
-def make_command(*parts: str):
+def make_resp(*parts: str):
     resp = f"*{len(parts)}\r\n"
     for p in parts:
         resp += f"${len(p)}\r\n{p}\r\n"
