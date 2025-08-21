@@ -381,7 +381,7 @@ def wait_cmd(client: socket.socket, elements: list):
 
     while True:
         acknowledged = 0
-
+        print(f"CURRENT OFFSET: {target_offset}")
         # Count replicas that have acknowledged this offset or more
         for offset in server_status["replica_offsets"].values():
             if offset >= target_offset:
@@ -403,6 +403,7 @@ def wait_cmd(client: socket.socket, elements: list):
                 pass
 
         time.sleep(0.05)  # small delay before checking again
+
 
     return f":{acknowledged}\r\n"
 
