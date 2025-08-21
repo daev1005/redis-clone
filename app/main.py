@@ -448,15 +448,9 @@ def write_to_replicas(cmd, elements):
                 try:
                     replicated_client.sendall(make_resp_command(*elements))
                     replicated_client.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-                    
-                    # read replica's reply
-                    data = replicated_client.recv(1024)
-                    elements_ack, _ = parse_command(data)
-                    if elements_ack[0].lower() == "replconf" and elements_ack[1].lower() == "ack":
-                        server_status["replica_offsets"][replicated_client] = int(elements_ack[2])
                 except Exception:
                     dead_replicas.append(replicated_client)
-            
+            # read replica's reply
         
         # clear at the end
         for r in dead_replicas:
