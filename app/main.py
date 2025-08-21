@@ -7,8 +7,9 @@ from collections import defaultdict
 server_status = {
     "server_role": "master",
     "repl_id": "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb",
-    "repl_offset": "0",
-    "replicas": []
+    "repl_offset": 0,
+    "replicas": [],
+    "replica_offsets": {}
     }
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
@@ -342,24 +343,18 @@ def info_cmd(client: socket.socket, elements: list):
     if type == "replication":
         role = server_status["server_role"]
         repl_id = server_status["repl_id"]
-        repl_offset = server_status["repl_offset"]
+        repl_offset = str(server_status["repl_offset"])
         response = f"role:{role}\r\nmaster_replid:{repl_id}\r\nmaster_repl_offset:{repl_offset}\r\n"
         return (
             f"${len(response)}\r\n{response}\r\n"
         )
 
-# def replconf_cmd(client: socket.socket, elements: list):
-#     if elements[1].lower() == "getack":
-#         repl_offset = server_status["repl_offset"]
-#         client.sendall(f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n".encode())
-#         return None
-#     else:
-#         return f"+OK\r\n"
 
 def replconf_cmd(client: socket.socket, elements: list):
     if len(elements) > 1 and elements[1].lower() == "getack":
         repl_offset = server_status["repl_offset"]
         response = f"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n${len(repl_offset)}\r\n{repl_offset}\r\n"
+        
         client.sendall(response.encode())
         print(f"[DEBUG] Response sent successfully")
     else:
@@ -374,11 +369,38 @@ def psync_cmd(client: socket.socket, elements: list):
         empty_rdb_hex = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
         client.sendall(b"$" + str(len(bytes.fromhex(empty_rdb_hex))).encode() + b"\r\n" + bytes.fromhex(empty_rdb_hex))
         server_status["replicas"].append(client)
+        server_status["replica_offsets"][client] = 0
     return None
 
 def wait_cmd(client: socket.socket, elements: list):
-    list_of_replicas = server_status["replicas"]
-    return f":{len(list_of_replicas)}\r\n"
+    specified_amount_of_replicas = elements[1]
+    timeout_ms = elements[2]
+    current_offset = server_status["repl_offset"]
+
+    start_time = time.time()
+    timeout_sec = timeout_ms / 1000
+
+    while True:
+        # Count how many replicas have caught up
+        acked_count = sum(
+            1
+            for offset in server_status["replica_offsets"].values()
+            if offset >= current_offset
+        )
+
+        if acked_count >= specified_amount_of_replicas:
+            break
+
+        # Timeout check
+        elapsed = time.time() - start_time
+        if elapsed >= timeout_sec:
+            break
+
+        # Sleep briefly to avoid busy-waiting
+        time.sleep(0.001)  # 1ms
+
+    # Return the number of replicas that acknowledged
+    return f":{acked_count}\r\n"
         
 
 
@@ -532,7 +554,6 @@ def handle_client(client: socket.socket):
 
 def handle_replica(master_socket: socket.socket):
     buffer = b""  # accumulate incoming data
-    repl_offset = int(server_status["repl_offset"])
     while True:
         try:
             data = master_socket.recv(1024)
@@ -551,12 +572,11 @@ def handle_replica(master_socket: socket.socket):
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
                         find_cmd(cmd, master_socket, elements)
-                        repl_offset += command_bytes
-                        server_status["repl_offset"] = str(repl_offset)
+                        server_status["repl_offset"] += command_bytes
                     else:
                         # For all other commands, update offset first then execute
-                        repl_offset += command_bytes
-                        server_status["repl_offset"] = str(repl_offset)
+                        server_status["repl_offset"] += command_bytes
+                        server_status["replica_offsets"][master_socket] += command_bytes
                         find_cmd(cmd, master_socket, elements)
 
                 except ValueError:
