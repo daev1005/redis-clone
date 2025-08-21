@@ -400,7 +400,7 @@ def wait_cmd(client: socket.socket, elements: list):
             except Exception:
                 pass
 
-        time.sleep(0.05)  # small delay before checking again
+        # time.sleep(0.05)  # small delay before checking again
 
     return f":{acknowledged}\r\n"
 
