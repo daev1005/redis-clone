@@ -373,6 +373,7 @@ def psync_cmd(client: socket.socket, elements: list):
     return None
 
 def wait_cmd(client: socket.socket, elements: list):
+    repl_lock = threading.Lock()
     specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     current_offset = server_status["repl_offset"]
@@ -381,12 +382,13 @@ def wait_cmd(client: socket.socket, elements: list):
     timeout_sec = timeout_ms / 1000
 
     while True:
-        # Count how many replicas have caught up
-        acked_count = sum(
-            1
-            for offset in server_status["replica_offsets"].values()
-            if offset >= current_offset
-        )
+        with repl_lock:
+            # Count how many replicas have caught up
+            acked_count = sum(
+                1
+                for offset in server_status["replica_offsets"].values()
+                if offset >= current_offset
+            )
 
         if acked_count >= specified_amount_of_replicas:
             break
