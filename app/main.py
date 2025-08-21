@@ -726,7 +726,7 @@ def main():
             daemon=True,
         )
         replica_thread.start()
-    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
+        
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
