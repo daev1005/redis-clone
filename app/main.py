@@ -50,7 +50,6 @@ def set_cmd(client: socket.socket, elements: list):
     return f"+OK\r\n"  
 
 def get_cmd(client: socket.socket, elements: list):
-    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     # Retrieve the value for the given key
     # If the key does not exist, respond with $-1
     if elements[1] not in store:
@@ -577,7 +576,7 @@ def parse_command(data: bytes):
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     multi_called = False
-    
+    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
