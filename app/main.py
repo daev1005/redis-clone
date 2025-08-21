@@ -444,16 +444,23 @@ def write_to_replicas(cmd, elements):
     write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
     dead_replicas = []
     if cmd in write_commands:
-            for replicated_client in server_status["replicas"]:
+        for replicated_client in server_status["replicas"]:
                 try:
                     replicated_client.sendall(make_resp_command(*elements))
                     replicated_client.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+                    
+                    # read replica's reply
+                    data = replicated_client.recv(1024)
+                    elements_ack, _ = parse_command(data)
+                    if elements_ack[0].lower() == "replconf" and elements_ack[1].lower() == "ack":
+                        server_status["replica_offsets"][replicated_client] = int(elements_ack[2])
                 except Exception:
                     dead_replicas.append(replicated_client)
-
-            # clear at the end
-            for r in dead_replicas:
-                server_status["replicas"].remove(r)
+            
+        
+        # clear at the end
+        for r in dead_replicas:
+            server_status["replicas"].remove(r)    
 
                 
 
