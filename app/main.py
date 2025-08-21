@@ -449,7 +449,8 @@ command_map = {
     "replconf": replconf_cmd,
     "psync": psync_cmd,
     "wait": wait_cmd,
-    "config": config_cmd
+    "config": config_cmd,
+    "key": key_cmd
 }
 
 def make_resp_command(*parts: str):
