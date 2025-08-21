@@ -440,9 +440,6 @@ def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
     result = None
     if cmd in command_map:
-        command_bytes = make_resp_command(*elements)
-        command_size = len(command_bytes)
-        server_status["repl_offset"] += command_size
         result = command_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
@@ -459,7 +456,7 @@ def write_to_replicas(cmd, elements):
     if cmd in write_commands:
         command_bytes = make_resp_command(*elements)
         command_size = len(command_bytes)
-        
+        server_status["repl_offset"] += command_size
         for replicated_client in server_status["replicas"]:
             try:
                 replicated_client.sendall(command_bytes)
