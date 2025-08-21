@@ -372,27 +372,55 @@ def psync_cmd(client: socket.socket, elements: list):
         server_status["replica_offsets"][client] = 0
     return None
 
+# def wait_cmd(client: socket.socket, elements: list):
+#     specified_amount_of_replicas = int(elements[1])
+#     timeout_ms = int(elements[2])
+    
+#     start_time = time.time()
+#     timeout_sec = timeout_ms / 1000
+#     acked_count = 0
+
+#     for replica_socket in server_status["replicas"]:
+#         if (time.time() - start_time) >= timeout_sec:
+#             break
+#         try:
+#             replica_socket.settimeout(timeout_sec)
+#             response = replica_socket.recv(1024)
+#             if b"REPLCONF" in response and b"ACK" in response:
+#                 acked_count += 1
+#         except:
+#             pass
+    
+#     return f":{acked_count}\r\n"
+
 def wait_cmd(client: socket.socket, elements: list):
     specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     
+    # Get the current master offset when WAIT was called
+    current_master_offset = server_status["repl_offset"]
+    
     start_time = time.time()
     timeout_sec = timeout_ms / 1000
-    acked_count = 0
-
-    for replica_socket in server_status["replicas"]:
-        if (time.time() - start_time) >= timeout_sec:
-            break
-        try:
-            replica_socket.settimeout(timeout_sec)
-            response = replica_socket.recv(1024)
-            if b"REPLCONF" in response and b"ACK" in response:
-                acked_count += 1
-        except:
-            pass
     
-    return f":{acked_count}\r\n"
+    while (time.time() - start_time) < timeout_sec:
+        # Count replicas that have caught up to this offset
+        acked_count = sum(
+            1 for offset in server_status["replica_offsets"].values() 
+            if offset >= current_master_offset
+        )
         
+        if acked_count >= specified_amount_of_replicas:
+            return f":{acked_count}\r\n"
+        
+        time.sleep(0.001)
+    
+    # Return final count after timeout
+    final_acked = sum(
+        1 for offset in server_status["replica_offsets"].values() 
+        if offset >= current_master_offset
+    )
+    return f":{final_acked}\r\n"
 
 
 
