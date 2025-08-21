@@ -393,7 +393,7 @@ def wait_cmd(client: socket.socket, elements: list):
             break
 
         for replica in server_status["replica_clients"]:
-            replica.sendall(b"REPLCONF GETACK *\r\n")
+            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
         time.sleep(0.05)
     return f":{acknowledged}\r\n"
 
