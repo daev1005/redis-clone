@@ -373,7 +373,7 @@ def psync_cmd(client: socket.socket, elements: list):
     return None
 
 def wait_cmd(client: socket.socket, elements: list):
-    specified_amount_of_replicas = elements[1]
+    specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     current_offset = server_status["repl_offset"]
 
