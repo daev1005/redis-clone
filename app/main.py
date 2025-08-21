@@ -476,7 +476,13 @@ def load_rdb_file(file_path):
     # Find the first printable strings after header
     import re
     strings = re.findall(rb"[ -~]{2,}", data)  # extract ASCII printable sequences
-    filtered = [s.decode("utf-8") for s in strings if not s.startswith(b"REDIS") and not s.startswith(b"redis")]
+    filtered = []
+    for s in strings:
+        if s.startswith(b"REDIS") or s.startswith(b"redis"):
+            continue
+        if re.match(rb"^\d+\.\d+\.\d+$", s):  # skip version like 7.2.0
+            continue
+        filtered.append(s.decode("utf-8"))
 
     # Usually, the first 2 strings after header are: key and value
     if len(filtered) >= 2:
