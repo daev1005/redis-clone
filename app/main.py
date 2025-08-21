@@ -378,6 +378,12 @@ def wait_cmd(client: socket.socket, elements: list):
     timeout_sec = timeout_ms / 1000
     target_offset = server_status["repl_offset"]  # offset after the write
     start_time = time.time()
+     # Ask replicas for ACK
+    for replica in server_status["replicas"]:
+        try:
+            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+        except Exception:
+            pass
 
     while True:
         acknowledged = 0
@@ -395,12 +401,7 @@ def wait_cmd(client: socket.socket, elements: list):
             print(f"RAN OUT OF TIME")
             break  # timeout reached
 
-        # Ask replicas for ACK
-        for replica in server_status["replicas"]:
-            try:
-                replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-            except Exception:
-                pass
+       
 
         time.sleep(0.05)  # small delay before checking again
 
