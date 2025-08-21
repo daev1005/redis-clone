@@ -450,7 +450,7 @@ command_map = {
     "psync": psync_cmd,
     "wait": wait_cmd,
     "config": config_cmd,
-    "key": key_cmd
+    "keys": key_cmd
 }
 
 def make_resp_command(*parts: str):
