@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 from collections import defaultdict
+import os
 
 server_status = {
     "server_role": "master",
@@ -20,7 +21,7 @@ expiration_time = {}
 queued = {}
 rdb_configs = {
     "dir": "",
-    "rdbfilename": ""
+    "dbfilename": ""
 }
 
 
@@ -423,6 +424,7 @@ def config_cmd(client: socket.socket, elements: list):
 
 def keys_cmd(client: socket.socket, elements: list):
     target_key = elements[1].lower()
+    load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     if target_key == "*":
         return make_resp(*store.keys())
 
@@ -458,11 +460,28 @@ def make_resp_command(*parts: str):
     for p in parts:
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp.encode()  
+
 def make_resp(*parts: str):
     resp = f"*{len(parts)}\r\n"
     for p in parts:
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
+
+def load_rdb_file(file_path):
+    with open(file_path, "rb") as f:
+        data = f.read()
+
+    # Skip the header "REDIS0011" (first 9 bytes)
+    # Find the first printable strings after header
+    import re
+    strings = re.findall(rb"[ -~]{1,}", data)  # extract ASCII printable sequences
+
+    # Usually, the first 2 strings after header are: key and value
+    if len(strings) >= 2:
+        key = strings[-2].decode("utf-8")
+        value = strings[-1].decode("utf-8")
+        store[key] = value
+    return
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
