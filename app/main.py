@@ -383,22 +383,17 @@ def wait_cmd(client: socket.socket, elements: list):
     start_time = time.time()
     timeout_sec = timeout_ms / 1000
 
-    while True:
-        with repl_lock:
-            acked_count = sum(
-                1
-                for offset in server_status["replica_offsets"].values()
-                if offset >= current_offset
-            )
-
-        if acked_count >= specified_amount_of_replicas:
-            break
-
+    for replica_socket in server_status["replicas"]:
         if (time.time() - start_time) >= timeout_sec:
             break
-
-        time.sleep(0.001)
-
+        try:
+            replica_socket.settimeout(timeout_sec)
+            response = replica_socket.recv(1024)
+            if b"REPLCONF" in response and b"ACK" in response:
+                acked_count += 1
+        except:
+            pass
+    
     return f":{acked_count}\r\n"
         
 
