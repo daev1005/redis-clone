@@ -357,6 +357,9 @@ def replconf_cmd(client: socket.socket, elements: list):
         
         client.sendall(response.encode())
         print(f"[DEBUG] Response sent successfully")
+    elif len(elements) > 1 and elements[1].lower() == "ack":
+        offset = int(elements[2])
+        server_status["replica_offsets"][client] = offset
     else:
         print(f"[DEBUG] Non-GETACK REPLCONF command")
         return f"+OK\r\n"
@@ -380,22 +383,33 @@ def wait_cmd(client: socket.socket, elements: list):
 
     # Master offset at this moment
     target_offset = server_status["repl_offset"]
-    acknowledged = 0
-    while True:
-        for offsets in server_status["replica_offsets"].values():
-            if offsets >= target_offset:
-                acknowledged += 1
-        if acknowledged >= num_replicas:
-            break
+    def wait_helper():
+        while True:
+            acknowledged = 0
+            for offsets in server_status["replica_offsets"].values():
+                if offsets >= target_offset:
+                    acknowledged += 1
+            if acknowledged >= num_replicas:
+                break
 
-        # Timeout check
-        if time.time() - start_time >= timeout_sec:
-            break
+            # Timeout check
+            if time.time() - start_time >= timeout_sec:
+                break
 
-        for replica in server_status["replica_clients"]:
-            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-        time.sleep(0.05)
-    return f":{acknowledged}\r\n"
+            for replica in server_status["replica_clients"]:
+                replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+            time.sleep(0.05)
+   
+        try:
+            client.sendall(f":{acknowledged}\r\n".encode())
+        except Exception:
+            pass  # client may have disconnected
+
+    # Run worker in a background thread
+    threading.Thread(target=wait_helper, daemon=True).start()
+
+    # Return nothing immediately (response will come later)
+    return None
 
 
 
