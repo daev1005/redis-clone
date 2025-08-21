@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 from collections import defaultdict
+import traceback
 
 server_status = {
     "server_role": "master",
@@ -376,39 +377,33 @@ def wait_cmd(client: socket.socket, elements: list):
     num_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     timeout_sec = timeout_ms / 1000
-    target_offset = server_status["repl_offset"]
+    target_offset = server_status["repl_offset"]  # offset after the write
     start_time = time.time()
 
-    acknowledged = 0
-    last_getack_time = 0
+    while True:
+        acknowledged = 0
 
-    # Send initial GETACK
-    for replica in server_status["replicas"]:
-        try:
-            replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-        except Exception:
-            pass
-    last_getack_time = time.time()
+        # Count replicas that have acknowledged this offset or more
+        for offset in server_status["replica_offsets"].values():
+            if offset >= target_offset:
+                acknowledged += 1
 
-    while time.time() - start_time < timeout_sec:
-        # Check ACK status
-        acknowledged = sum(1 for offset in server_status["replica_offsets"].values() if offset >= target_offset)
         if acknowledged >= num_replicas:
-            break
+            break  # required replicas reached
 
-        # Re-send GETACK every 100ms if needed
-        if time.time() - last_getack_time > 0.1:
-            for replica in server_status["replicas"]:
-                try:
-                    replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-                except Exception:
-                    pass
-            last_getack_time = time.time()
+        if time.time() - start_time >= timeout_sec:
+            break  # timeout reached
 
-        time.sleep(0.02)  # smaller sleep for faster reaction
+        # Ask replicas for ACK
+        for replica in server_status["replicas"]:
+            try:
+                replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+            except Exception:
+                pass
+
+        time.sleep(0.05)  # small delay before checking again
 
     return f":{acknowledged}\r\n"
-
 
 
 command_map = {
@@ -517,55 +512,87 @@ def parse_command(data: bytes):
     total_consumed = start_pos + consumed
     return elements, total_consumed
 
-##Takes in multiple clients and handles them concurrently
-def handle_client(client: socket.socket):
-    multi_called = False
-    while True:
-        #1024 is the bytesize of the input buffer (isn't fixed)
-        input = client.recv(1024)
-        elements, _ = parse_command(input)
-        cmd = elements[0].lower()
+# ##Takes in multiple clients and handles them concurrently
+# def handle_client(client: socket.socket):
+#     multi_called = False
+#     while True:
+#         #1024 is the bytesize of the input buffer (isn't fixed)
+#         input = client.recv(1024)
+#         elements, _ = parse_command(input)
+#         cmd = elements[0].lower()
         
-        if "multi" == cmd:
-                client.sendall(b"+OK\r\n")
-                multi_called = True
-                queued[client] = []
-        elif "exec" == cmd:
-            commands = queued.get(client, [])
-            if multi_called:
-                if commands:
-                    responses = []
-                    for command in commands:
-                        cmd_key = command[0].lower()
-                        resp = find_cmd(cmd_key, client, command)
-                        if resp is not None:
-                            responses.append(resp)
-                        write_to_replicas(cmd_key, commands)
-                    msg = f"*{len(responses)}\r\n"
-                    for response in responses:
-                        msg  += response
-                    client.sendall(msg.encode())
+#         if "multi" == cmd:
+#                 client.sendall(b"+OK\r\n")
+#                 multi_called = True
+#                 queued[client] = []
+#         elif "exec" == cmd:
+#             commands = queued.get(client, [])
+#             if multi_called:
+#                 if commands:
+#                     responses = []
+#                     for command in commands:
+#                         cmd_key = command[0].lower()
+#                         resp = find_cmd(cmd_key, client, command)
+#                         if resp is not None:
+#                             responses.append(resp)
+#                         write_to_replicas(cmd_key, commands)
+#                     msg = f"*{len(responses)}\r\n"
+#                     for response in responses:
+#                         msg  += response
+#                     client.sendall(msg.encode())
+#                 else:
+#                     client.sendall(b"*0\r\n")
+#                 multi_called = False
+#                 queued[client] = []
+#             else:
+#                 client.sendall(b"-ERR EXEC without MULTI\r\n")
+#         elif "discard" == cmd:
+#             if multi_called:
+#                 client.sendall(b"+OK\r\n")
+#                 multi_called = False
+#             else:
+#                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
+#         elif not multi_called:
+#             response = find_cmd(cmd, client, elements)
+#             if response is not None:
+#                 client.sendall(response.encode())
+#         else:
+#             if client not in queued:
+#                 queued[client] = []
+#             queued[client].append(elements)
+#             client.sendall(b"+QUEUED\r\n")
+
+def handle_client(client):
+    buffer = b""
+    try:
+        while True:
+            data = client.recv(4096)
+            if not data:
+                break
+            buffer += data
+            while True:
+                try:
+                    elements, consumed = parse_command(buffer)
+                except ValueError:
+                    break
+                buffer = buffer[consumed:]
+                cmd = elements[0].lower()
+
+                if cmd == "ping":
+                    client.sendall(b"+PONG\r\n")
+                elif cmd == "wait":
+                    try:
+                        result = wait_cmd(client, elements)
+                        client.sendall(result.encode())
+                    except Exception as e:
+                        print("[ERROR] Exception in wait_cmd:", e)
+                        traceback.print_exc()
                 else:
-                    client.sendall(b"*0\r\n")
-                multi_called = False
-                queued[client] = []
-            else:
-                client.sendall(b"-ERR EXEC without MULTI\r\n")
-        elif "discard" == cmd:
-            if multi_called:
-                client.sendall(b"+OK\r\n")
-                multi_called = False
-            else:
-                client.sendall(b"-ERR DISCARD without MULTI\r\n")
-        elif not multi_called:
-            response = find_cmd(cmd, client, elements)
-            if response is not None:
-                client.sendall(response.encode())
-        else:
-            if client not in queued:
-                queued[client] = []
-            queued[client].append(elements)
-            client.sendall(b"+QUEUED\r\n")
+                    # Handle other commands...
+                    pass
+    except Exception as e:
+        print("[FATAL] Exception in handle_client:", e)
+        traceback.print_exc()
 
 
 def handle_replica(master_socket: socket.socket):
