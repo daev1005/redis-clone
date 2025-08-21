@@ -469,6 +469,8 @@ def make_resp(*parts: str):
 # Reading the rdb for keys
 def load_rdb_file(file_path):
     global store
+    if not os.path.exists(file_path):
+        return
     with open(file_path, "rb") as f:
         data = f.read()
 
