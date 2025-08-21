@@ -423,7 +423,7 @@ def wait_cmd(client: socket.socket, elements: list):
                 break
 
             # Send GETACK to all connected replicas
-            for replica in server_status["replica_clients"]:
+            for replica in server_status["replicas"]:
                 try:
                     replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
                 except Exception:
