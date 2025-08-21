@@ -15,6 +15,7 @@ blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
 lists = {}
 list_locks = defaultdict(threading.Lock)  
+repl_lock = threading.Lock()
 store = {}
 expiration_time = {}
 queued = {}
@@ -373,17 +374,17 @@ def psync_cmd(client: socket.socket, elements: list):
     return None
 
 def wait_cmd(client: socket.socket, elements: list):
-    repl_lock = threading.Lock()
     specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
-    current_offset = server_status["repl_offset"]
+    
+    with repl_lock:
+        current_offset = server_status["repl_offset"]
 
     start_time = time.time()
     timeout_sec = timeout_ms / 1000
 
     while True:
         with repl_lock:
-            # Count how many replicas have caught up
             acked_count = sum(
                 1
                 for offset in server_status["replica_offsets"].values()
@@ -393,15 +394,11 @@ def wait_cmd(client: socket.socket, elements: list):
         if acked_count >= specified_amount_of_replicas:
             break
 
-        # Timeout check
-        elapsed = time.time() - start_time
-        if elapsed >= timeout_sec:
+        if (time.time() - start_time) >= timeout_sec:
             break
 
-        # Sleep briefly to avoid busy-waiting
-        time.sleep(0.001)  # 1ms
+        time.sleep(0.001)
 
-    # Return the number of replicas that acknowledged
     return f":{acked_count}\r\n"
         
 
