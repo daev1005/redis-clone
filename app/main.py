@@ -380,13 +380,15 @@ def wait_cmd(client: socket.socket, elements: list):
     start_time = time.time()
 
     acknowledged = 0
+    last_getack_time = 0
 
-    # Immediately request ACKs from all replicas
+    # Send initial GETACK
     for replica in server_status["replicas"]:
         try:
             replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
         except Exception:
             pass
+    last_getack_time = time.time()
 
     while time.time() - start_time < timeout_sec:
         # Check ACK status
@@ -394,11 +396,19 @@ def wait_cmd(client: socket.socket, elements: list):
         if acknowledged >= num_replicas:
             break
 
-       
+        # Re-send GETACK every 100ms if needed
+        if time.time() - last_getack_time > 0.1:
+            for replica in server_status["replicas"]:
+                try:
+                    replica.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
+                except Exception:
+                    pass
+            last_getack_time = time.time()
 
-        time.sleep(0.05)
+        time.sleep(0.02)  # smaller sleep for faster reaction
 
     return f":{acknowledged}\r\n"
+
 
 
 command_map = {
