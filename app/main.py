@@ -460,7 +460,6 @@ def write_to_replicas(cmd, elements):
         for replicated_client in server_status["replicas"]:
             try:
                 replicated_client.sendall(command_bytes)
-                server_status["replica_offsets"][replicated_client] += command_size
             except Exception:
                 dead_replicas.append(replicated_client)
         # read replica's reply (if needed)
