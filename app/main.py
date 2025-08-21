@@ -376,13 +376,6 @@ def wait_cmd(client: socket.socket, elements: list):
     specified_amount_of_replicas = int(elements[1])
     timeout_ms = int(elements[2])
     
-     # First, send GETACK to all replicas
-    for replica_socket in server_status["replicas"]:
-        try:
-            replica_socket.sendall(make_resp_command("REPLCONF", "GETACK", "*"))
-        except:
-            pass
-        
     start_time = time.time()
     timeout_sec = timeout_ms / 1000
     acked_count = 0
