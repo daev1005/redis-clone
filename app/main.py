@@ -18,6 +18,10 @@ list_locks = defaultdict(threading.Lock)
 store = {}
 expiration_time = {}
 queued = {}
+rdb_configs = {
+    "dir": "",
+    "rdbfilename": ""
+}
 
 
 
@@ -408,6 +412,16 @@ def wait_cmd(client: socket.socket, elements: list):
 
     return f":{acknowledged}\r\n"
 
+#Although CONFIG GET can fetch multiple parameters at a time, this will only read one parameter at a time.
+def config_cmd(client: socket.socket, elements: list):
+    parameter = elements[2].lower()
+    if elements[1].lower() == "get":
+        if parameter == "dir":
+            return make_command("dir", rdb_configs["dir"])
+        elif parameter == "dbfilename":
+            return make_command("dbfilename", rdb_configs["dbfilename"])
+        
+
 
 command_map = {
     "ping": ping_cmd,
@@ -428,7 +442,8 @@ command_map = {
     "info": info_cmd,
     "replconf": replconf_cmd,
     "psync": psync_cmd,
-    "wait": wait_cmd
+    "wait": wait_cmd,
+    "config": config_cmd
 }
 
 def make_resp_command(*parts: str):
@@ -436,6 +451,11 @@ def make_resp_command(*parts: str):
     for p in parts:
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp.encode()  
+def make_command(*parts: str):
+    resp = f"*{len(parts)}\r\n"
+    for p in parts:
+        resp += f"${len(p)}\r\n{p}\r\n"
+    return resp
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
@@ -637,6 +657,16 @@ def main():
         port_index = sys.argv.index("--port") + 1
         if port_index < len(sys.argv):
             PORT = int(sys.argv[port_index])
+
+    if "--dir" in sys.argv:
+        dir_index = sys.argv.index("--dir") + 1
+        if dir_index < len(sys.argv):
+            rdb_configs["dir"] = sys.argv[dir_index]
+    
+    if "--dbfilename" in sys.argv:
+        db_index = sys.argv.index("--dbfilename") + 1
+        if db_index < len(sys.argv):
+            rdb_configs["dbfilename"] = sys.argv[db_index]
     
     if "--replicaof" in sys.argv:
         master_info = sys.argv[sys.argv.index("--replicaof") + 1].split()
