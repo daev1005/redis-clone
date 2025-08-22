@@ -492,31 +492,11 @@ def load_rdb_file(file_path):
     pos = 0
     expire_time = None
 
-    # ✅ Skip header
-    if data.startswith(b"REDIS"):
-        pos = 9  # after REDISxxxx
-
     while pos < len(data):
         opcode = data[pos]
         pos += 1
-
-        if opcode == 0xFA:  # AUX field
-            if pos >= len(data): break
-            key_len = data[pos]
-            pos += 1 + key_len
-            if pos >= len(data): break
-            val_len = data[pos]
-            pos += 1 + val_len
-
-        elif opcode == 0xFE:  # DB selector
-            if pos < len(data):
-                pos += 1  # skip DB number
-            continue
-
-        elif opcode == 0xFB:  # RESIZEDB (hash table sizes)
-            pos += 2  # skip sizes (simplified)
-
-        elif opcode == 0xFC:  # Expire in ms
+        
+        if opcode == 0xFC:  # Expire in ms
             expire_time = struct.unpack('<Q', data[pos:pos+8])[0]
             pos += 8
 
@@ -552,7 +532,6 @@ def load_rdb_file(file_path):
         else:
             # ✅ Unknown opcode → skip safely
             continue
-
     return
 
 def find_cmd(cmd, client: socket.socket, elements: list):
