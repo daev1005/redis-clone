@@ -4,6 +4,7 @@ import threading
 import time
 from collections import defaultdict
 import os
+import re
 
 server_status = {
     "server_role": "master",
@@ -466,32 +467,56 @@ def make_resp(*parts: str):
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
 
-# Reading the rdb for keys
+
 def load_rdb_file(file_path):
     global store
     if not os.path.exists(file_path):
         return
+
     with open(file_path, "rb") as f:
         data = f.read()
 
-    # Skip the header "REDIS0011" (first 9 bytes)
-    # Find the first printable strings after header
-    import re
-    strings = re.findall(rb"[ -~]{2,}", data)  # extract ASCII printable sequences
+    # Skip the header (first 9 bytes)
+    data = data[9:]
+
+    # Extract all printable ASCII sequences of length >= 2
+    #[ -~] → Matches any printable ASCII character (space 0x20 to tilde 0x7E).
+    #{2,} → The sequence must be at least 2 characters long.
+    strings = re.findall(rb"[ -~]{2,}", data)
+
     filtered = []
     for s in strings:
-        if s.startswith(b"REDIS") or s.startswith(b"redis"):
+        # Decode and skip obvious metadata
+        try:
+            text = s.decode("utf-8")
+        except UnicodeDecodeError:
             continue
-        if re.match(rb"^\d+\.\d+\.\d+$", s):  # skip version like 7.2.0
+
+        # Skip Redis header or version
+        if text.startswith("REDIS") or text.startswith("redis"):
             continue
-        filtered.append(s.decode("utf-8"))
+        if re.match(r"^\d+\.\d+\.\d+$", text):  # version like 7.2.0
+            continue
+        if text in ("select", "db", "EOF"):  # known markers
+            continue
+        if len(text) > 256:  # very large strings are probably serialized data
+            continue
 
-    # Usually, the first 2 strings after header are: key and value
-    if len(filtered) >= 2:
-        key = filtered[0]
-        value = filtered[1]
-        store[key] = value
+        filtered.append(text)
 
+    # Attempt to pair keys and values intelligently
+    # Heuristic: keys are usually shorter than values
+    i = 0
+    while i < len(filtered) - 1:
+        key = filtered[i]
+        value = filtered[i + 1]
+
+        # Simple heuristic to avoid pairing two huge strings as key-value
+        if len(key) < 128:  
+            store[key] = value
+            i += 2
+        else:
+            i += 1
     return
 
 def find_cmd(cmd, client: socket.socket, elements: list):
