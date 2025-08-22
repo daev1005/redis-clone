@@ -492,9 +492,30 @@ def load_rdb_file(file_path):
     pos = 0
     expire_time = None
 
+    if data.startswith(b"REDIS"):
+        pos = 9  # skip "REDIS0011"
+    
     while pos < len(data):
         opcode = data[pos]
         pos += 1
+
+        if opcode == 0xFA:  # AUX field (metadata)
+            # Skip string key and value
+            if pos >= len(data): break
+            key_len = data[pos]
+            pos += 1
+            pos += key_len
+            if pos >= len(data): break
+            val_len = data[pos]
+            pos += 1
+            pos += val_len
+
+        elif opcode == 0xFE:  # DB selector
+            continue  # just skip
+
+        elif opcode == 0xFB:  # Hash table sizes
+            # Next two bytes: key-value table size and expires size
+            pos += 2
 
         if opcode == 0xFC:  # Expire in milliseconds
             expire_time = struct.unpack('<Q', data[pos:pos + 8])[0]
