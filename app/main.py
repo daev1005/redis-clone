@@ -482,6 +482,7 @@ def make_resp(*parts: str):
 
 
 def load_rdb_file(file_path):
+    global store, expiration_time
     if not os.path.exists(file_path):
         return
 
@@ -491,65 +492,66 @@ def load_rdb_file(file_path):
     pos = 0
     expire_time = None
 
+    # ✅ Skip header
     if data.startswith(b"REDIS"):
-        pos = 9  # skip "REDIS0011"
-    
+        pos = 9  # after REDISxxxx
+
     while pos < len(data):
         opcode = data[pos]
         pos += 1
 
-        if opcode == 0xFA:  # AUX field (metadata)
-            # Skip string key and value
+        if opcode == 0xFA:  # AUX field
             if pos >= len(data): break
             key_len = data[pos]
-            pos += 1
-            pos += key_len
+            pos += 1 + key_len
             if pos >= len(data): break
             val_len = data[pos]
-            pos += 1
-            pos += val_len
+            pos += 1 + val_len
 
         elif opcode == 0xFE:  # DB selector
-            continue  # just skip
+            if pos < len(data):
+                pos += 1  # skip DB number
+            continue
 
-        elif opcode == 0xFB:  # Hash table sizes
-            # Next two bytes: key-value table size and expires size
-            pos += 2
+        elif opcode == 0xFB:  # RESIZEDB (hash table sizes)
+            pos += 2  # skip sizes (simplified)
 
-        if opcode == 0xFC:  # Expire in milliseconds
-            expire_time = struct.unpack('<Q', data[pos:pos + 8])[0]
+        elif opcode == 0xFC:  # Expire in ms
+            expire_time = struct.unpack('<Q', data[pos:pos+8])[0]
             pos += 8
-        elif opcode == 0xFD:  # Expire in seconds
-            expire_sec = struct.unpack('<I', data[pos:pos + 4])[0]
+
+        elif opcode == 0xFD:  # Expire in sec
+            expire_sec = struct.unpack('<I', data[pos:pos+4])[0]
             expire_time = expire_sec * 1000
             pos += 4
-        elif opcode == 0x00:  # Type flag: string
-            # Key
+
+        elif opcode == 0x00:  # String type
+            # ✅ Read key
+            if pos >= len(data): break
             key_len = data[pos]
             pos += 1
-            key = data[pos:pos + key_len].decode('utf-8', errors='ignore')
+            key = data[pos:pos+key_len].decode('utf-8', errors='ignore')
             pos += key_len
 
-            # Value
-            if pos + 1 > len(data):
-                break
+            # ✅ Read value
+            if pos >= len(data): break
             val_len = data[pos]
             pos += 1
-
-            if pos + val_len > len(data):
-                break
-            value = data[pos:pos + val_len].decode('utf-8', errors='ignore')
+            value = data[pos:pos+val_len].decode('utf-8', errors='ignore')
             pos += val_len
 
+            # ✅ Store
             store[key] = value
             if expire_time is not None:
-                expiration_time[key] = expire_time / 1000.0  # convert ms → seconds
+                expiration_time[key] = expire_time / 1000.0  # ms → sec
             expire_time = None
+
         elif opcode == 0xFF:  # End of RDB
             break
+
         else:
-            # Ignore unknown opcodes for now
-            pass
+            # ✅ Unknown opcode → skip safely
+            continue
 
     return
 
