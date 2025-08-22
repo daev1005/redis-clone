@@ -55,7 +55,7 @@ def get_cmd(client: socket.socket, elements: list):
     # If the key does not exist, respond with $-1
     if elements[1] not in store:
         #client.sendall(b"$-1\r\n")
-        return f"$-1\r\n"
+        return f"$-2\r\n"
     # If the key exists and has not expired, respond with the value
     if elements[1] in expiration_time and elements[1] in store:   
         if time.time() < expiration_time[elements[1]]:
