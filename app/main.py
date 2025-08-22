@@ -492,11 +492,28 @@ def load_rdb_file(file_path):
     pos = 0
     expire_time = None
 
+    # Skip header "REDIS0011"
+    if data.startswith(b"REDIS"):
+        pos = 9
+
     while pos < len(data):
         opcode = data[pos]
         pos += 1
-        
-        if opcode == 0xFC:  # Expire in ms
+
+        if opcode == 0xFA:  # AUX field
+            key_len, pos = read_length(data, pos)
+            pos += key_len
+            val_len, pos = read_length(data, pos)
+            pos += val_len
+
+        elif opcode == 0xFE:  # DB selector
+            _, pos = read_length(data, pos)
+
+        elif opcode == 0xFB:  # Hash table sizes
+            _, pos = read_length(data, pos)
+            _, pos = read_length(data, pos)
+
+        elif opcode == 0xFC:  # Expire in ms
             expire_time = struct.unpack('<Q', data[pos:pos+8])[0]
             pos += 8
 
@@ -506,21 +523,17 @@ def load_rdb_file(file_path):
             pos += 4
 
         elif opcode == 0x00:  # String type
-            # ✅ Read key
             if pos >= len(data): break
-            key_len = data[pos]
-            pos += 1
+            key_len, pos = read_length(data, pos)
             key = data[pos:pos+key_len].decode('utf-8', errors='ignore')
             pos += key_len
 
-            # ✅ Read value
+
             if pos >= len(data): break
-            val_len = data[pos]
-            pos += 1
+            val_len, pos = read_length(data, pos)
             value = data[pos:pos+val_len].decode('utf-8', errors='ignore')
             pos += val_len
 
-            # ✅ Store
             store[key] = value
             if expire_time is not None:
                 expiration_time[key] = expire_time / 1000.0  # ms → sec
@@ -530,9 +543,27 @@ def load_rdb_file(file_path):
             break
 
         else:
-            # ✅ Unknown opcode → skip safely
             continue
     return
+
+def read_length(data, pos):
+    first = data[pos]
+    pos += 1
+    type_bits = first >> 6
+
+    if type_bits == 0:  # 6-bit
+        return first & 0x3F, pos
+    elif type_bits == 1:  # 14-bit
+        second = data[pos]
+        pos += 1
+        length = ((first & 0x3F) << 8) | second
+        return length, pos
+    elif type_bits == 2:  # 32-bit
+        length = struct.unpack('>I', data[pos:pos+4])[0]
+        pos += 4
+        return length, pos
+    else:
+        raise ValueError("Unsupported encoding")
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
