@@ -524,15 +524,36 @@ def load_rdb_file(file_path):
 
         elif opcode == 0x00:  # String type
             if pos >= len(data): break
+
+            # Read key length
             key_len, pos = read_length(data, pos)
+            if isinstance(key_len, tuple) and key_len[0] == "ENC":
+                raise ValueError("Special encoding for keys not supported")
             key = data[pos:pos+key_len].decode('utf-8', errors='ignore')
             pos += key_len
 
-
             if pos >= len(data): break
+
+            # Read value length or encoding
             val_len, pos = read_length(data, pos)
-            value = data[pos:pos+val_len].decode('utf-8', errors='ignore')
-            pos += val_len
+            if isinstance(val_len, tuple) and val_len[0] == "ENC":
+                encoding = val_len[1]
+                if encoding == 0:  # Integer 8-bit
+                    value = str(data[pos])
+                    pos += 1
+                elif encoding == 1:  # Integer 16-bit
+                    value = str(struct.unpack('<H', data[pos:pos+2])[0])
+                    pos += 2
+                elif encoding == 2:  # Integer 32-bit
+                    value = str(struct.unpack('<I', data[pos:pos+4])[0])
+                    pos += 4
+                elif encoding == 3:  # LZF compression
+                    raise NotImplementedError("LZF compression not supported")
+                else:
+                    raise ValueError(f"Unknown encoding type: {encoding}")
+            else:
+                value = data[pos:pos+val_len].decode('utf-8', errors='ignore')
+                pos += val_len
 
             store[key] = value
             if expire_time is not None:
