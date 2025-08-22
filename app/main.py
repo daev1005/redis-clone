@@ -511,6 +511,8 @@ def load_rdb_file(file_path):
             pos += key_len
 
             # Value
+            if pos + 1 > len(data):
+                break
             val_len = data[pos]
             pos += 1
 
