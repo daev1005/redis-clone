@@ -513,6 +513,9 @@ def load_rdb_file(file_path):
             # Value
             val_len = data[pos]
             pos += 1
+
+            if pos + val_len > len(data):
+                break
             value = data[pos:pos + val_len].decode('utf-8', errors='ignore')
             pos += val_len
 
