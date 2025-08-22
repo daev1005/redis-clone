@@ -504,7 +504,8 @@ def load_rdb_file(file_path):
             key_len, pos = read_length(data, pos)
             pos += key_len
             val_len, pos = read_length(data, pos)
-            pos += val_len
+            if isinstance(val_len, int):
+                pos += val_len
 
         elif opcode == 0xFE:  # DB selector
             _, pos = read_length(data, pos)
