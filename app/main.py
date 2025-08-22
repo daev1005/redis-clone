@@ -522,8 +522,9 @@ def load_rdb_file(file_path):
             pos += val_len
 
             store[key] = value
-            expiration_time[key] = expire_time
-            expire_time = None  # Reset for next key
+            if expire_time is not None:
+                expiration_time[key] = expire_time / 1000.0  # convert ms → seconds
+            expire_time = None
         elif opcode == 0xFF:  # End of RDB
             break
         else:
