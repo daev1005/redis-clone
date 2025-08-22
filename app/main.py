@@ -427,6 +427,19 @@ def keys_cmd(client: socket.socket, elements: list):
     target_key = elements[1].lower()
     if target_key == "*":
         return make_resp(*store.keys())
+    elif "*" in target_key:
+        filtered = ""
+        k = []
+        for char in target_key:
+            if char is not "*":
+                filtered += char
+        for key in store.keys():
+            if filtered in key:
+                k.append(key)
+        return make_resp(*k)
+    
+    elif target_key in store.keys():
+        return f"${len(store[target_key])}\r\n{store[target_key]}\r\n"
 
         
 
