@@ -55,7 +55,7 @@ def get_cmd(client: socket.socket, elements: list):
     # If the key does not exist, respond with $-1
     if elements[1] not in store:
         #client.sendall(b"$-1\r\n")
-        return f"$-2\r\n"
+        return f"$-1\r\n"
     # If the key exists and has not expired, respond with the value
     if elements[1] in expiration_time and elements[1] in store:   
         if time.time() < expiration_time[elements[1]]:
@@ -482,7 +482,6 @@ def make_resp(*parts: str):
 
 
 def load_rdb_file(file_path):
-    global store
     if not os.path.exists(file_path):
         return
 
@@ -552,7 +551,7 @@ def load_rdb_file(file_path):
             # Ignore unknown opcodes for now
             pass
 
-    return store
+    return
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
