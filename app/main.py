@@ -4,7 +4,7 @@ import threading
 import time
 from collections import defaultdict
 import os
-import re
+import struct
 
 server_status = {
     "server_role": "master",
@@ -431,7 +431,7 @@ def keys_cmd(client: socket.socket, elements: list):
         filtered = ""
         k = []
         for char in target_key:
-            if char is not "*":
+            if char != "*":
                 filtered += char
         for key in store.keys():
             if filtered in key:
@@ -489,48 +489,43 @@ def load_rdb_file(file_path):
     with open(file_path, "rb") as f:
         data = f.read()
 
-    # Skip the header (first 9 bytes)
-    data = data[9:]
+    pos = 0
+    expire_time = None
 
-    # Extract all printable ASCII sequences of length >= 2
-    #[ -~] → Matches any printable ASCII character (space 0x20 to tilde 0x7E).
-    #{2,} → The sequence must be at least 2 characters long.
-    strings = re.findall(rb"[ -~]{2,}", data)
+    while pos < len(data):
+        opcode = data[pos]
+        pos += 1
 
-    filtered = []
-    for s in strings:
-        # Decode and skip obvious metadata
-        try:
-            text = s.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
+        if opcode == 0xFC:  # Expire in milliseconds
+            expire_time = struct.unpack('<Q', data[pos:pos + 8])[0]
+            pos += 8
+        elif opcode == 0xFD:  # Expire in seconds
+            expire_sec = struct.unpack('<I', data[pos:pos + 4])[0]
+            expire_time = expire_sec * 1000
+            pos += 4
+        elif opcode == 0x00:  # Type flag: string
+            # Key
+            key_len = data[pos]
+            pos += 1
+            key = data[pos:pos + key_len].decode('utf-8', errors='ignore')
+            pos += key_len
 
-        # Skip Redis header or version
-        if text.startswith("REDIS") or text.startswith("redis"):
-            continue
-        if re.match(r"^\d+\.\d+\.\d+$", text):  # version like 7.2.0
-            continue
-        if text in ("select", "db", "EOF"):  # known markers
-            continue
-        if len(text) > 256:  # very large strings are probably serialized data
-            continue
+            # Value
+            val_len = data[pos]
+            pos += 1
+            value = data[pos:pos + val_len].decode('utf-8', errors='ignore')
+            pos += val_len
 
-        filtered.append(text)
-
-    # Attempt to pair keys and values intelligently
-    # Heuristic: keys are usually shorter than values
-    i = 0
-    while i < len(filtered) - 1:
-        key = filtered[i]
-        value = filtered[i + 1]
-
-        # Simple heuristic to avoid pairing two huge strings as key-value
-        if len(key) < 128:  
             store[key] = value
-            i += 2
+            expiration_time[key] = expire_time
+            expire_time = None  # Reset for next key
+        elif opcode == 0xFF:  # End of RDB
+            break
         else:
-            i += 1
-    return
+            # Ignore unknown opcodes for now
+            pass
+
+    return store
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
