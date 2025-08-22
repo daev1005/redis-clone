@@ -562,6 +562,9 @@ def read_length(data, pos):
         length = struct.unpack('>I', data[pos:pos+4])[0]
         pos += 4
         return length, pos
+    elif type_bits == 3:  # Special encoding
+        encoding_type = first & 0x3F  # last 6 bits
+        return ("ENC", encoding_type), pos
     else:
         raise ValueError("Unsupported encoding")
 
