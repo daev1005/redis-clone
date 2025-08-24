@@ -454,10 +454,12 @@ def subscribe_cmd(client: socket.socket, elements: list):
 
 def publish_cmd(client: socket.socket, elements: list):
     channel = elements[1].lower()
+    msg = elements[2]
     count = 0
     for c in client_subscribed:
         if channel in client_subscribed[c]:
             count += 1
+            c.sendall(make_resp_command("message", channel, msg))
     return f":{count}\r\n"
 
 
