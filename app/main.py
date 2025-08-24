@@ -701,7 +701,7 @@ def handle_client(client: socket.socket):
         cmd = elements[0].lower()
         if is_subscribed:
             if cmd not in subscribed_mode:
-                client.sendall(f"-ERR Can't execute {cmd}: only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context")
+                client.sendall(f"-ERR Can't execute {cmd}: only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context".encode())
             else:
                 response = find_cmd(cmd, client, elements)
                 if response is not None:
