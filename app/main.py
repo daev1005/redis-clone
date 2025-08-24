@@ -466,7 +466,7 @@ def unsubscribe_cmd(client: socket.socket, elements:list):
     channel = elements[1].lower()
     if channel in client_subscribed[client]:
         client_subscribed[client].remove(channel)
-    return f":{len(client_subscribed[client])}\r\n"
+    return f"*3\r\n${len("unsubscribe")}\r\nusubscribe\r\n${len(channel)}\r\n{channel}\r\n:{len(client_subscribed[client])}\r\n"
 
 
 command_map = {
