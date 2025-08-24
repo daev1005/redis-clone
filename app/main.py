@@ -452,7 +452,13 @@ def subscribe_cmd(client: socket.socket, elements: list):
          subscribed.append(channel) 
     return f"*3\r\n${len("subscribe")}\r\nsubscribe\r\n${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
 
-        
+def publish_cmd(client: socket.socket, elements: list):
+    channel = elements[1].lower()
+    count = 0
+    for c in client_subscribed:
+        if channel in c.values():
+            count += 1
+    return f":{count}\r\n"
 
 
 command_map = {
@@ -478,7 +484,8 @@ command_map = {
     "wait": wait_cmd,
     "config": config_cmd,
     "keys": keys_cmd,
-    "subscribe": subscribe_cmd
+    "subscribe": subscribe_cmd,
+    "publish": publish_cmd
 }
 
 subscribed_mode = [
