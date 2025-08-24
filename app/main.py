@@ -477,6 +477,14 @@ command_map = {
     "subscribe": subscribe_cmd
 }
 
+subscribed_mode = {
+    "subscribe": "placeholder",
+    "unsubscribe": "placeholder",
+    "psubscribe": "placeholder",
+    "ping": ping_cmd,
+    "quit": "placeholder"
+}
+
 def make_resp_command(*parts: str):
     resp = f"*{len(parts)}\r\n"
     for p in parts:
@@ -685,13 +693,20 @@ def parse_command(data: bytes):
 ##Takes in multiple clients and handles them concurrently
 def handle_client(client: socket.socket):
     multi_called = False
+    is_subscribed = False
     while True:
         #1024 is the bytesize of the input buffer (isn't fixed)
         input = client.recv(1024)
         elements, _ = parse_command(input)
         cmd = elements[0].lower()
-        
-        if "multi" == cmd:
+        if is_subscribed:
+            if cmd not in subscribed_mode:
+                client.sendall(f"-ERR Can't execute {cmd}: only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context")
+            else:
+                response = find_cmd(cmd, client, elements)
+                if response is not None:
+                    client.sendall(response.encode())
+        elif "multi" == cmd:
                 client.sendall(b"+OK\r\n")
                 multi_called = True
                 queued[client] = []
@@ -722,6 +737,8 @@ def handle_client(client: socket.socket):
                 multi_called = False
             else:
                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
+        elif "subscribe" == cmd:
+            is_subscribed = True
         elif not multi_called:
             response = find_cmd(cmd, client, elements)
             if response is not None:
