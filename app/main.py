@@ -15,6 +15,7 @@ server_status = {
     }
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
+subscribed = []
 lists = {}
 list_locks = defaultdict(threading.Lock)  
 store = {}
@@ -441,6 +442,14 @@ def keys_cmd(client: socket.socket, elements: list):
     elif target_key in store.keys():
         return f"${len(store[target_key])}\r\n{store[target_key]}\r\n"
 
+def subscribe_cmd(client: socket.socket, elements: list):
+    channel = elements[1].lower()
+    if channel in subscribed:
+        return f"-ERR channel already subscribed"
+    else:
+        subscribed.append[channel]
+        return make_resp["subscribe", channel, str(len(subscribed))]
+
         
 
 
@@ -465,7 +474,8 @@ command_map = {
     "psync": psync_cmd,
     "wait": wait_cmd,
     "config": config_cmd,
-    "keys": keys_cmd
+    "keys": keys_cmd,
+    "subscribe": subscribe_cmd
 }
 
 def make_resp_command(*parts: str):
@@ -480,7 +490,8 @@ def make_resp(*parts: str):
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
 
-
+##---------------------------------------------------------------------
+### LOOK BACK ON THIS: VERY CONFUSING
 def load_rdb_file(file_path):
     global store, expiration_time
     if not os.path.exists(file_path):
@@ -589,6 +600,8 @@ def read_length(data, pos):
         return ("ENC", encoding_type), pos
     else:
         raise ValueError("Unsupported encoding")
+
+##---------------------------------------------------------------------
 
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
