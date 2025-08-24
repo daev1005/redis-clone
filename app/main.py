@@ -33,7 +33,7 @@ def ping_cmd(client: socket.socket, elements: list):
     return f"+PONG\r\n"
 
 def sping_cmd(client: socket.socket, elements: list):
-    return make_resp("ping", "")
+    return make_resp("pong", "")
 
 def echo_cmd(client: socket.socket, elements: list):
     message = ""
