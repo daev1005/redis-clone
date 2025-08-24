@@ -15,7 +15,7 @@ server_status = {
     }
 blocked_clients = defaultdict(list)
 blocked_streams = defaultdict(list)
-subscribed = []
+client_subscribed = defaultdict(list)
 lists = {}
 list_locks = defaultdict(threading.Lock)  
 store = {}
@@ -444,6 +444,7 @@ def keys_cmd(client: socket.socket, elements: list):
 
 def subscribe_cmd(client: socket.socket, elements: list):
     channel = elements[1].lower()
+    subscribed = client_subscribed[client]
     if channel not in subscribed:
          subscribed.append(channel) 
     return f"*3\r\n${len("subscribe")}\r\nsubscribe\r\n${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
