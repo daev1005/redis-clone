@@ -737,10 +737,10 @@ def handle_client(client: socket.socket):
                 multi_called = False
             else:
                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
-        elif "subscribe" == cmd:
-            is_subscribed = True
         elif not multi_called:
             response = find_cmd(cmd, client, elements)
+            if "subscribe" == cmd:
+                is_subscribed = True
             if response is not None:
                 client.sendall(response.encode())
         else:
