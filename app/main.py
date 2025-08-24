@@ -492,7 +492,8 @@ command_map = {
     "config": config_cmd,
     "keys": keys_cmd,
     "subscribe": subscribe_cmd,
-    "publish": publish_cmd
+    "publish": publish_cmd,
+    "unsubscribe": unsubscribe_cmd
 }
 
 subscribed_mode = [
