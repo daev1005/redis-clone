@@ -462,6 +462,11 @@ def publish_cmd(client: socket.socket, elements: list):
             c.sendall(make_resp_command("message", channel, msg))
     return f":{count}\r\n"
 
+def unsubscribe_cmd(client: socket.socket, elements:list):
+    channel = elements[1].lower()
+    if channel in client_subscribed[client]:
+        client_subscribed[client].remove(channel)
+
 
 command_map = {
     "ping": ping_cmd,
