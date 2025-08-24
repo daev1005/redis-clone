@@ -32,6 +32,9 @@ def ping_cmd(client: socket.socket, elements: list):
     #client.sendall(b"+PONG\r\n")
     return f"+PONG\r\n"
 
+def sping_cmd(client: socket.socket, elements: list):
+    return make_resp("ping", "")
+
 def echo_cmd(client: socket.socket, elements: list):
     message = ""
     # Respond with the expected message
@@ -454,6 +457,7 @@ def subscribe_cmd(client: socket.socket, elements: list):
 
 command_map = {
     "ping": ping_cmd,
+    "sping": sping_cmd,
     "echo": echo_cmd,
     "set": set_cmd,
     "get": get_cmd,
@@ -477,13 +481,13 @@ command_map = {
     "subscribe": subscribe_cmd
 }
 
-subscribed_mode = {
-    "subscribe": "placeholder",
-    "unsubscribe": "placeholder",
-    "psubscribe": "placeholder",
-    "ping": ping_cmd,
-    "quit": "placeholder"
-}
+subscribed_mode = [
+    "subscribe",
+    "unsubscribe",
+    "psubscribe",
+    "ping",
+    "quit"
+]
 
 def make_resp_command(*parts: str):
     resp = f"*{len(parts)}\r\n"
@@ -703,6 +707,8 @@ def handle_client(client: socket.socket):
             if cmd not in subscribed_mode:
                 client.sendall(f"-ERR Can't execute '{cmd}': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context\r\n".encode())
             else:
+                if cmd == "ping":
+                    cmd = "sping"
                 response = find_cmd(cmd, client, elements)
                 if response is not None:
                     client.sendall(response.encode())
