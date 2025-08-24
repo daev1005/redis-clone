@@ -456,7 +456,7 @@ def publish_cmd(client: socket.socket, elements: list):
     channel = elements[1].lower()
     count = 0
     for c in client_subscribed:
-        if channel in c.values():
+        if channel in client_subscribed[c]:
             count += 1
     return f":{count}\r\n"
 
