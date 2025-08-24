@@ -448,7 +448,7 @@ def subscribe_cmd(client: socket.socket, elements: list):
         return f"-ERR channel already subscribed"
     else:
         subscribed.append(channel)
-        return f"*3\r\n${len("subscribe")}\r\n\${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
+        return f"*3\r\n${len("subscribe")}\r\nsubscribe\r\n\${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
 
         
 
