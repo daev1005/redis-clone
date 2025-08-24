@@ -444,11 +444,9 @@ def keys_cmd(client: socket.socket, elements: list):
 
 def subscribe_cmd(client: socket.socket, elements: list):
     channel = elements[1].lower()
-    if channel in subscribed:
-        return f"-ERR channel already subscribed"
-    else:
-        subscribed.append(channel)
-        return f"*3\r\n${len("subscribe")}\r\nsubscribe\r\n${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
+    if channel not in subscribed:
+         subscribed.append(channel) 
+    return f"*3\r\n${len("subscribe")}\r\nsubscribe\r\n\${len(channel)}\r\n{channel}\r\n:{len(subscribed)}\r\n"
 
         
 
