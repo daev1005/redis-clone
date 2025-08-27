@@ -489,7 +489,7 @@ def zrank_cmd(client: socket.socket, elements: list):
         index = sorted_list.index(member)
         return f":{index}\r\n"
     else:
-        return f"$-1\r\n"
+        return f":-1\r\n"
 
 
 
