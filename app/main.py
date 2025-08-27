@@ -481,6 +481,17 @@ def zadd_cmd(client: socket.socket, elements: list):
     else:
         return f":0\r\n"
 
+def zrank_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    member = elements[2]
+    sorted_list = sorted(sorted_sets[key].items(), key=lambda x: (x[1], x[0]))
+    if member in sorted_list:
+        index = sorted_list.index(member)
+        return f":{index}\r\n"
+    else:
+        return f"$-1\r\n"
+
+
 
 
 command_map = {
