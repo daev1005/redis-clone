@@ -558,7 +558,8 @@ command_map = {
     "unsubscribe": unsubscribe_cmd,
     "zadd": zadd_cmd,
     "zrank": zrank_cmd,
-    "zrange": zrange_cmd
+    "zrange": zrange_cmd,
+    "zcard": zcard_cmd
 }
 
 subscribed_mode = [
