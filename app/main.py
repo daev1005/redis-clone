@@ -25,6 +25,7 @@ rdb_configs = {
     "dir": "",
     "dbfilename": ""
 }
+sorted_sets = {}
 
 
 
@@ -467,6 +468,16 @@ def unsubscribe_cmd(client: socket.socket, elements:list):
     if channel in client_subscribed[client]:
         client_subscribed[client].remove(channel)
     return f"*3\r\n${len("unsubscribe")}\r\nunsubscribe\r\n${len(channel)}\r\n{channel}\r\n:{len(client_subscribed[client])}\r\n"
+
+def zadd_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    score = float(elements[2])
+    member = elements[3]
+    if key not in sorted_sets:
+        sorted_sets[key] = {}
+        if member not in sorted_sets[key]:
+            sorted_sets[key][member] = score
+            return f":1\r\n"
 
 
 command_map = {
