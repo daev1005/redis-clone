@@ -499,10 +499,16 @@ def zrange_cmd(client: socket.socket, elements: list):
         return f"*0\r\n"
     sorted_list = sorted(sorted_sets[key].items(), key=lambda x: (x[1], x[0]))
     array = f""
+    
     if start < 0:
         start = len(sorted_list) + start
     if end < 0:
         end = len(sorted_list) + end
+    if start < 0:
+        start = 0
+    if end < 0:
+        end = 0  
+
     if start > len(sorted_list) - 1:
         return f"*0\r\n"
     if end > len(sorted_list) - 1:
