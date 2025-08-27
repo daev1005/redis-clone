@@ -505,7 +505,8 @@ command_map = {
     "keys": keys_cmd,
     "subscribe": subscribe_cmd,
     "publish": publish_cmd,
-    "unsubscribe": unsubscribe_cmd
+    "unsubscribe": unsubscribe_cmd,
+    "zadd": zadd_cmd
 }
 
 subscribed_mode = [
