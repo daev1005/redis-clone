@@ -505,7 +505,7 @@ def zrange_cmd(client: socket.socket, elements: list):
         end = len(sorted_list) - 1
     if start > end:
         return f"*0\r\n"
-    for i in range(start, end, 1):
+    for i in range(start, end + 1, 1):
         member, score = sorted_list[i]
         array += f"${len(member)}\r\n{member}\r\n"
     return f"*{end - start + 1}\r\n{array}"
