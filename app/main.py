@@ -490,7 +490,25 @@ def zrank_cmd(client: socket.socket, elements: list):
     for index, (m, score) in enumerate(sorted_list):
         if m == member:
             return f":{index}\r\n"
-
+        
+def zrange_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    start = int(elements[2])
+    end = int(elements[3])
+    if key not in sorted_sets:
+        return f"*0\r\n"
+    sorted_list = sorted(sorted_sets[key].items(), key=lambda x: (x[1], x[0]))
+    array = f""
+    if start > len(sorted_list) - 1:
+        return f"*0\r\n"
+    if end > len(sorted_list) - 1:
+        end = len(sorted_list) - 1
+    if start > end:
+        return f"*0\r\n"
+    for i in range(start, end, 1):
+        member, score = sorted_list[i]
+        array += f"${len(member)}\r\n{member}\r\n"
+    return f"*{end - start + 1}\r\n{array}"
 
 
 
@@ -521,7 +539,8 @@ command_map = {
     "publish": publish_cmd,
     "unsubscribe": unsubscribe_cmd,
     "zadd": zadd_cmd,
-    "zrank": zrank_cmd
+    "zrank": zrank_cmd,
+    "zrange": zrange_cmd
 }
 
 subscribed_mode = [
