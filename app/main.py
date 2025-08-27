@@ -479,6 +479,7 @@ def zadd_cmd(client: socket.socket, elements: list):
         sorted_sets[key][member] = score
         return f":1\r\n"
     else:
+        sorted_sets[key][member] = score
         return f":0\r\n"
 
 def zrank_cmd(client: socket.socket, elements: list):
@@ -519,6 +520,13 @@ def zrange_cmd(client: socket.socket, elements: list):
         member, score = sorted_list[i]
         array += f"${len(member)}\r\n{member}\r\n"
     return f"*{end - start + 1}\r\n{array}"
+
+def zcard_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    if key not in sorted_sets:
+        return f":0\r\n"
+    size = len(sorted_sets[key])
+    return f":{size}\r\n"
 
 
 
