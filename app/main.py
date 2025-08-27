@@ -520,7 +520,8 @@ command_map = {
     "subscribe": subscribe_cmd,
     "publish": publish_cmd,
     "unsubscribe": unsubscribe_cmd,
-    "zadd": zadd_cmd
+    "zadd": zadd_cmd,
+    "zrank": zrank_cmd
 }
 
 subscribed_mode = [
