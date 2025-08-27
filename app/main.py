@@ -478,6 +478,8 @@ def zadd_cmd(client: socket.socket, elements: list):
         if member not in sorted_sets[key]:
             sorted_sets[key][member] = score
             return f":1\r\n"
+        else:
+            return f":0\r\n"
 
 
 command_map = {
