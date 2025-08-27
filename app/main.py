@@ -485,7 +485,7 @@ def zrank_cmd(client: socket.socket, elements: list):
     key = elements[1]
     member = elements[2]
     if key not in sorted_sets or member not in sorted_sets[key]:
-        return f":-1\r\n"
+        return f"$-1\r\n"
     sorted_list = sorted(sorted_sets[key].items(), key=lambda x: (x[1], x[0]))
     for index, (m, score) in enumerate(sorted_list):
         if m == member:
