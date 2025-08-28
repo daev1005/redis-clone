@@ -482,6 +482,8 @@ def zadd_cmd(client: socket.socket, elements: list):
         sorted_sets[key][member] = score
         return f":0\r\n"
 
+# used to query the rank of a member in a sorted set. It returns an integer, which is 0-based index of the member when the sorted set is ordered by increasing score. 
+# If two members have same score, the members are ordered lexicographically.
 def zrank_cmd(client: socket.socket, elements: list):
     key = elements[1]
     member = elements[2]
@@ -491,7 +493,8 @@ def zrank_cmd(client: socket.socket, elements: list):
     for index, (m, score) in enumerate(sorted_list):
         if m == member:
             return f":{index}\r\n"
-        
+
+# used to list the members in a sorted set given a start index and an end index. The index of the first element is 0. The end index is inclusive.        
 def zrange_cmd(client: socket.socket, elements: list):
     key = elements[1]
     start = int(elements[2])
@@ -521,12 +524,21 @@ def zrange_cmd(client: socket.socket, elements: list):
         array += f"${len(member)}\r\n{member}\r\n"
     return f"*{end - start + 1}\r\n{array}"
 
+# used to query the cardinality (number of elements) of a sorted set. It returns an integer. The response is 0 if the sorted set specified does not exist.
 def zcard_cmd(client: socket.socket, elements: list):
     key = elements[1]
     if key not in sorted_sets:
         return f":0\r\n"
     size = len(sorted_sets[key])
     return f":{size}\r\n"
+
+# used to query the score of a member of a sorted set. If the sorted set and the member both exist, the score of the member is returned as a RESP bulk string.
+def zscore_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    member = elements[2]
+    if key not in sorted_sets or member not in sorted_sets[key]:
+        return f"$-1\r\n"
+    return f"${len(str(sorted_sets[key][member]))}\r\n{sorted_sets[key][member]}\r\n"
 
 
 
