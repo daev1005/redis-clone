@@ -15,8 +15,7 @@ def make_resp(*parts: str):
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
 
-##---------------------------------------------------------------------
-### LOOK BACK ON THIS: VERY CONFUSING
+# Reads the rdb file and only retrieves the key, value pairs and expiration time (if any)
 def load_rdb_file(file_path):
     global store, expiration_time
     if not os.path.exists(file_path):
@@ -104,6 +103,7 @@ def load_rdb_file(file_path):
             continue
     return
 
+# Reads a length-encoded value from a Redis RDB-like byte stream starting at pos. new_pos is the updated position after reading.
 def read_length(data, pos):
     first = data[pos]
     pos += 1
@@ -125,8 +125,7 @@ def read_length(data, pos):
         return ("ENC", encoding_type), pos
     else:
         raise ValueError("Unsupported encoding")
-
-##---------------------------------------------------------------------
+    
 
 # Helper function to find and execute the command
 def find_cmd(cmd, client: socket.socket, elements: list, cmd_map: dict):
