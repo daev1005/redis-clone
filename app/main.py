@@ -540,6 +540,13 @@ def zscore_cmd(client: socket.socket, elements: list):
         return f"$-1\r\n"
     return f"${len(str(sorted_sets[key][member]))}\r\n{sorted_sets[key][member]}\r\n"
 
+def zremove_cmd(client: socket.socket, elements: list):
+    key = elements[1]
+    member = elements[2]
+    if key not in sorted_sets or member not in sorted_sets[key]:
+        return f":0\r\n"
+    del sorted_sets[key][member]
+    return f":1\r\n"
 
 
 command_map = {
@@ -572,7 +579,8 @@ command_map = {
     "zrank": zrank_cmd,
     "zrange": zrange_cmd,
     "zcard": zcard_cmd,
-    "zscore": zscore_cmd
+    "zscore": zscore_cmd,
+    "zrem": zremove_cmd
 }
 
 subscribed_mode = [
