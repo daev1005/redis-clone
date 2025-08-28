@@ -2,9 +2,9 @@ import socket  # noqa: F401
 import sys
 import threading
 import os
-from state import *
-from commands import *
-from utils import *
+from app.state import *
+from app.commands import *
+from app.utils import *
 
 command_map = {
     "ping": ping_cmd,

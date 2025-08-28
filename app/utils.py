@@ -2,8 +2,8 @@ import state
 import os
 import struct
 import socket
-from main import command_map
-from state import server_status, store, expiration_time
+from app.main import command_map
+from app.state import server_status, store, expiration_time
 
 def make_resp_command(*parts: str):
     resp = f"*{len(parts)}\r\n"
