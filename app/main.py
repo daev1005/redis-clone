@@ -39,7 +39,7 @@ def ping_cmd(client: socket.socket, elements: list):
 def sping_cmd(client: socket.socket, elements: list):
     return make_resp("pong", "")
 
-
+# accepts a single argument and returns it back as a RESP bulk string.
 def echo_cmd(client: socket.socket, elements: list):
     message = ""
     # Respond with the expected message
@@ -49,6 +49,7 @@ def echo_cmd(client: socket.socket, elements: list):
     #client.sendall(message.encode())  
     return message  
 
+# used to set a key to a value
 def set_cmd(client: socket.socket, elements: list):
 # Store the key-value pair in the store
     store[elements[1]] = elements[2]
@@ -59,6 +60,7 @@ def set_cmd(client: socket.socket, elements: list):
     #client.sendall(b"+OK\r\n")
     return f"+OK\r\n"  
 
+# used to get the value of a key
 def get_cmd(client: socket.socket, elements: list):
     # Retrieve the value for the given key
     # If the key does not exist, respond with $-1
@@ -84,6 +86,7 @@ def get_cmd(client: socket.socket, elements: list):
         #client.sendall(message.encode()) 
         return message
 
+# used to append elements to a list. If the list doesn't exist, it is created first.
 def rpush_cmd(client: socket.socket, elements: list):
     # This list contains a key and a value of a list
     values = elements[2:]
@@ -108,6 +111,8 @@ def rpush_cmd(client: socket.socket, elements: list):
                     del blocked_clients[elements[1]]
             event.set()
         return f":{size}\r\n"
+    
+# used to list the elements in a list given a start index and end index. The index of the first element is 0. The end index is inclusive.    
 def lrange_cmd(client: socket.socket, elements: list):
     values = lists.get(elements[1]) # Get the list for the given key
     first_index = int(elements[2])
@@ -136,6 +141,7 @@ def lrange_cmd(client: socket.socket, elements: list):
     #client.sendall(message.encode()) 
     return message
 
+# inserts elements from the left rather than right. If a list doesn't exist, it is created first before prepending elements.
 def lpush_cmd(client: socket.socket, elements: list):
     values = []
     # Adds all elements after the list name to the list
@@ -147,6 +153,7 @@ def lpush_cmd(client: socket.socket, elements: list):
     #client.sendall(f":{len(lists[elements[1]])}\r\n".encode())
     return f":{len(lists[elements[1]])}\r\n"
 
+# query a list's length
 def llen_cmd(client: socket.socket, elements: list):
     if elements[1] not in lists:
         #client.sendall(b":0\r\n")
@@ -156,6 +163,7 @@ def llen_cmd(client: socket.socket, elements: list):
         #client.sendall(f":{size}\r\n".encode())
         return f":{size}\r\n"
 
+# removes and returns the first element of the list. If the list is empty or doesn't exist, it returns a null bulk string ($-1\r\n).
 def lpop_cmd(client: socket.socket, elements: list):
     list_name = elements[1]
     # If the list does not exist or is empty, respond with $-1
@@ -177,6 +185,8 @@ def lpop_cmd(client: socket.socket, elements: list):
             #client.sendall(f"${len(item)}\r\n{item}\r\n".encode())
             return f"${len(item)}\r\n{item}\r\n"
 
+# allows clients to wait for an element to become available on one or more lists. If an element is available, it is removed and returned to the client. 
+# If no element is available, the client blocks until an element is pushed to one of the lists or until a specified timeout is reached.
 def blpop_cmd(client: socket.socket, elements: list):
     list_name = elements[1]
     timeout = float(elements[2])
@@ -195,7 +205,9 @@ def blpop_cmd(client: socket.socket, elements: list):
         # Timeout expired without push event
         #client.sendall(b"$-1\r\n")
         return f"$-1\r\n"
-
+    
+# returns the type of value stored at a given key. 
+# It returns one of the following types: string, list, set, zset, hash, and stream.
 def type_cmd(client: socket.socket, elements: list):
     if elements[1] in store:
         value = store[elements[1]]
@@ -209,6 +221,7 @@ def type_cmd(client: socket.socket, elements: list):
         client.sendall(b"+none\r\n")
         return f"+none\r\n"
 
+#appends an entry to a stream. If a stream doesn't exist already, it is created.
 def xadd_cmd(client: socket.socket, elements: list):
     stream_name = elements[1]
     entry_id = elements[2]
@@ -261,6 +274,7 @@ def xadd_cmd(client: socket.socket, elements: list):
             del blocked_streams[stream_name]
     return f"${len(entry_id)}\r\n{entry_id}\r\n"
 
+# retrieves a range of entries from a stream
 def xrange_cmd(client: socket.socket, elements: list):
     stream_name = elements[1]
     start_id = elements[2]
@@ -288,6 +302,7 @@ def xrange_cmd(client: socket.socket, elements: list):
     final = f"*{count}\r\n{message}"
     #client.sendall(final.encode())   
     return final  
+
 
 def xread_cmd(client: socket.socket, elements: list):
     streams_start = 2
@@ -721,6 +736,7 @@ def read_length(data, pos):
 
 ##---------------------------------------------------------------------
 
+# Helper function to find and execute the command
 def find_cmd(cmd, client: socket.socket, elements: list):
     # Execute the command on the master first
     result = None
@@ -735,6 +751,7 @@ def find_cmd(cmd, client: socket.socket, elements: list):
         write_to_replicas(cmd, elements)
     return result
 
+# Sends write commands to all connected replicas
 def write_to_replicas(cmd, elements):
     write_commands = {"set", "rpush", "lpush", "lpop", "blpop", "incr", "xadd"}
     dead_replicas = []
@@ -862,7 +879,7 @@ def handle_client(client: socket.socket):
             queued[client].append(elements)
             client.sendall(b"+QUEUED\r\n")
 
-
+# Sends commands from the master to the replica and handles incoming data
 def handle_replica(master_socket: socket.socket):
     buffer = b""  # accumulate incoming data
     while True:
