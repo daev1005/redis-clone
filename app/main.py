@@ -6,6 +6,8 @@ from collections import defaultdict
 import os
 import struct
 
+
+# Global data structures to hold server state
 server_status = {
     "server_role": "master",
     "repl_id": "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb",
@@ -28,13 +30,15 @@ rdb_configs = {
 sorted_sets = {}
 
 
-
+# Returns "pong" when pinged
 def ping_cmd(client: socket.socket, elements: list):
     #client.sendall(b"+PONG\r\n")
     return f"+PONG\r\n"
 
+# Returns "pong" when pinged when under subscribed mode
 def sping_cmd(client: socket.socket, elements: list):
     return make_resp("pong", "")
+
 
 def echo_cmd(client: socket.socket, elements: list):
     message = ""
@@ -540,6 +544,7 @@ def zscore_cmd(client: socket.socket, elements: list):
         return f"$-1\r\n"
     return f"${len(str(sorted_sets[key][member]))}\r\n{sorted_sets[key][member]}\r\n"
 
+# used to remove a member from a sorted set given the member's name.
 def zremove_cmd(client: socket.socket, elements: list):
     key = elements[1]
     member = elements[2]
