@@ -1,7 +1,6 @@
 import os
 import struct
 import socket
-from app.main import command_map
 from app.state import server_status, store, expiration_time
 
 def make_resp_command(*parts: str):
@@ -130,11 +129,11 @@ def read_length(data, pos):
 ##---------------------------------------------------------------------
 
 # Helper function to find and execute the command
-def find_cmd(cmd, client: socket.socket, elements: list):
+def find_cmd(cmd, client: socket.socket, elements: list, cmd_map: dict):
     # Execute the command on the master first
     result = None
-    if cmd in command_map:
-        result = command_map[cmd](client, elements)
+    if cmd in cmd_map:
+        result = cmd_map[cmd](client, elements)
     else:
         client.sendall(f"-ERR unknown command '{cmd}'\r\n".encode())
         return None

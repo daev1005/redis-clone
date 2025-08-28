@@ -106,7 +106,7 @@ def handle_client(client: socket.socket):
             else:
                 if cmd == "ping":
                     cmd = "sping"
-                response = find_cmd(cmd, client, elements)
+                response = find_cmd(cmd, client, elements, command_map)
                 if response is not None:
                     client.sendall(response.encode())
         elif "multi" == cmd:
@@ -120,7 +120,7 @@ def handle_client(client: socket.socket):
                     responses = []
                     for command in commands:
                         cmd_key = command[0].lower()
-                        resp = find_cmd(cmd_key, client, command)
+                        resp = find_cmd(cmd_key, client, command, command_map)
                         if resp is not None:
                             responses.append(resp)
                         write_to_replicas(cmd_key, commands)
@@ -141,7 +141,7 @@ def handle_client(client: socket.socket):
             else:
                 client.sendall(b"-ERR DISCARD without MULTI\r\n")
         elif not multi_called:
-            response = find_cmd(cmd, client, elements)
+            response = find_cmd(cmd, client, elements, command_map)
             if "subscribe" == cmd:
                 is_subscribed = True
             if response is not None:
@@ -172,12 +172,12 @@ def handle_replica(master_socket: socket.socket):
                     # Execute the command BEFORE updating offset for GETACK
                     if cmd == "replconf" and len(elements) > 1 and elements[1].lower() == "getack":
                         # Execute GETACK with current offset, then update offset
-                        find_cmd(cmd, master_socket, elements)
+                        find_cmd(cmd, master_socket, elements, command_map)
                         server_status["repl_offset"] += command_size
                     else:
                         # For all other commands, update offset first then execute
                         server_status["repl_offset"] += command_size
-                        find_cmd(cmd, master_socket, elements)
+                        find_cmd(cmd, master_socket, elements, command_map)
                         
 
                 except ValueError:
