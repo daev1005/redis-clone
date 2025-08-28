@@ -571,7 +571,8 @@ command_map = {
     "zadd": zadd_cmd,
     "zrank": zrank_cmd,
     "zrange": zrange_cmd,
-    "zcard": zcard_cmd
+    "zcard": zcard_cmd,
+    "zscore": zscore_cmd
 }
 
 subscribed_mode = [
