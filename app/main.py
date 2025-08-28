@@ -189,25 +189,7 @@ def handle_replica(master_socket: socket.socket):
 
 
     
-def get_entries(current_entries: list):
-    if current_entries:
-        inner = f"*{len(current_entries)}\r\n"
-        for entry in current_entries:
-            inner += f"${len(entry)}\r\n{entry}\r\n"
-        return inner
-    else:
-        return "*0\r\n"
 
-def unblock_stream(stream_name, start_id, current_id, current_entries, client):
-    if start_id == "$":
-        start_id = "0-0"
-    start_ms, start_seq = map(int, start_id.split("-"))
-    current_ms, current_seq = map(int, current_id.split("-"))
-    if (current_ms, current_seq) > (start_ms, start_seq):
-        entries = get_entries(current_entries)
-        id_and_entries = f"*2\r\n${len(current_id)}\r\n{current_id}\r\n{entries}"
-        final = f"*1\r\n*2\r\n${len(stream_name)}\r\n{stream_name}\r\n*1\r\n{id_and_entries}"
-        client.sendall(final.encode())
         
      
 
