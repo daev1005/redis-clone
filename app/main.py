@@ -2,7 +2,7 @@ import socket  # noqa: F401
 import sys
 import threading
 import os
-import state
+from state import *
 from commands import *
 from utils import *
 
@@ -111,9 +111,9 @@ def handle_client(client: socket.socket):
         elif "multi" == cmd:
                 client.sendall(b"+OK\r\n")
                 multi_called = True
-                state.queued[client] = []
+                queued[client] = []
         elif "exec" == cmd:
-            commands = state.queued.get(client, [])
+            commands = queued.get(client, [])
             if multi_called:
                 if commands:
                     responses = []
@@ -130,7 +130,7 @@ def handle_client(client: socket.socket):
                 else:
                     client.sendall(b"*0\r\n")
                 multi_called = False
-                state.queued[client] = []
+                queued[client] = []
             else:
                 client.sendall(b"-ERR EXEC without MULTI\r\n")
         elif "discard" == cmd:
@@ -146,9 +146,9 @@ def handle_client(client: socket.socket):
             if response is not None:
                 client.sendall(response.encode())
         else:
-            if client not in state.queued:
-                state.queued[client] = []
-            state.queued[client].append(elements)
+            if client not in queued:
+                queued[client] = []
+            queued[client].append(elements)
             client.sendall(b"+QUEUED\r\n")
 
 # Sends commands from the master to the replica and handles incoming data
@@ -225,12 +225,12 @@ def main():
     if "--dir" in sys.argv:
         dir_index = sys.argv.index("--dir") + 1
         if dir_index < len(sys.argv):
-            state.rdb_configs["dir"] = sys.argv[dir_index]
+            rdb_configs["dir"] = sys.argv[dir_index]
     
     if "--dbfilename" in sys.argv:
         db_index = sys.argv.index("--dbfilename") + 1
         if db_index < len(sys.argv):
-            state.rdb_configs["dbfilename"] = sys.argv[db_index]
+            rdb_configs["dbfilename"] = sys.argv[db_index]
     
     if "--replicaof" in sys.argv:
         master_info = sys.argv[sys.argv.index("--replicaof") + 1].split()
@@ -254,8 +254,8 @@ def main():
             daemon=True,
         )
         replica_thread.start()
-    if state.rdb_configs["dir"] and state.rdb_configs["dbfilename"]:    
-        load_rdb_file(os.path.join(state.rdb_configs["dir"], state.rdb_configs["dbfilename"]))
+    if rdb_configs["dir"] and rdb_configs["dbfilename"]:    
+        load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     print(f"Starting server on port {PORT}")
     server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
