@@ -4,6 +4,7 @@ import time
 from app.utils import make_resp, make_resp_command, get_entries, unblock_stream
 from app.state import store, lists, list_locks, blocked_clients, expiration_time, server_status, rdb_configs, blocked_streams, sorted_sets, client_subscribed
 
+
 # Returns "pong" when pinged
 def ping_cmd(client: socket.socket, elements: list):
     #client.sendall(b"+PONG\r\n")

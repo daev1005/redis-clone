@@ -3,8 +3,9 @@ import sys
 import threading
 import os
 from app.state import *
-from app.commands import *
 from app.utils import *
+from app.commands import *
+
 
 command_map = {
     "ping": ping_cmd,
