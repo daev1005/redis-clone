@@ -240,7 +240,10 @@ def main():
     if rdb_configs["dir"] and rdb_configs["dbfilename"]:    
         load_rdb_file(os.path.join(rdb_configs["dir"], rdb_configs["dbfilename"]))
     print(f"Starting server on port {PORT}")
-    server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
+    if sys.platform == "win32":
+        server_socket = socket.create_server(("localhost", PORT))
+    else:
+        server_socket = socket.create_server(("localhost", PORT), reuse_port=True)
     while True:
         connection,_ = server_socket.accept() # wait for client
         thread = threading.Thread(target=handle_client, args=(connection,))

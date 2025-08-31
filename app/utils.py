@@ -15,6 +15,12 @@ def make_resp(*parts: str):
         resp += f"${len(p)}\r\n{p}\r\n"
     return resp
 
+def send_command(command: list[str], host="localhost", port=6379) -> str:
+    """Send a command to the server and return the raw response as string."""
+    with socket.create_connection((host, port)) as sock:
+        sock.sendall(make_resp_command(*command))
+        return sock.recv(4096).decode()
+
 # Reads the rdb file and only retrieves the key, value pairs and expiration time (if any)
 def load_rdb_file(file_path):
     global store, expiration_time
