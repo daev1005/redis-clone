@@ -42,10 +42,10 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 ## Commands Usage
 ### Basic Commands
 - PING                      # -> +PONG
-- ECHO "Hello" (takes in only one word)            # -> "Hello"
+- ECHO "Hello"             # -> "Hello"
 - SET key value [PX 1000]  # -> +OK
 - GET key                  # -> "value"
-- INCR counter             # -> (integer) 1
+- INCR key             # -> (integer) 1
 
 ### Lists
 - LPUSH mylist "a"             # -> (integer) 1
@@ -59,6 +59,7 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 - XADD mystream * field value  # -> "1689851248173-0"
 - XRANGE mystream - +          # -> list of entries
 - XREAD STREAMS mystream 0     # -> list of new entries
+- XREAD BLOCK ms STREAMS mysteam id  #->  Read entries from stream (blocking supported)
 
 ### Pub/Sub
 - SUBSCRIBE channel            # -> "subscribe"
@@ -78,6 +79,10 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 - KEYS *                       # -> ["key1", "key2"]
 - CONFIG GET dir|dbfilename    # -> ["dir", "/tmp" | "dbfilename", "dump.rdb"]
 - INFO replication             # -> replication info
+- WAIT numreplicas timeout     # -> Wait for replicas to acknowledge
+
+### Basic Commands Demo:
+- <img width="335" height="200" alt="Screenshot 2025-08-31 155855" src="https://github.com/user-attachments/assets/55b77739-2b82-4f3d-95e0-f42b902d27d6" />
 
 ## Replication Setup
 
