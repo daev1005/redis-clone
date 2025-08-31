@@ -16,13 +16,8 @@ def sping_cmd(client: socket.socket, elements: list):
 
 # accepts a single argument and returns it back as a RESP bulk string.
 def echo_cmd(client: socket.socket, elements: list):
-    message = ""
-    # Respond with the expected message
-    for i in range(1, len(elements)):
-        msg = elements[i]
-        message += f"${len(msg)}\r\n{msg}\r\n"
-    #client.sendall(message.encode())  
-    return message  
+    message = " ".join(elements[1:])
+    return f"${len(message)}\r\n{message}\r\n" 
 
 # used to set a key to a value
 def set_cmd(client: socket.socket, elements: list):
