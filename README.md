@@ -1,4 +1,4 @@
-# Redis Clone in Python
+# Simple Redis Clone in Python
 
 A Redis-compatible in-memory database built from scratch in Python. Supports replication, blocking reads, lists, streams, sorted sets, and pub/sub.
 
@@ -31,7 +31,8 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 
 ### Start the server:
 
-`python3 app/main.py --port 6379`
+`python3 -m app.main`
+- <img width="741" height="70" alt="image" src="https://github.com/user-attachments/assets/ad834818-7440-44e6-b6e7-625060a558aa" />
 
 
 ### Connect with redis-cli:
@@ -41,7 +42,7 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 ## Commands Usage
 ### Basic Commands
 - PING                      # -> +PONG
-- ECHO "Hello"             # -> "Hello"
+- ECHO "Hello" (takes in only one word)            # -> "Hello"
 - SET key value [PX 1000]  # -> +OK
 - GET key                  # -> "value"
 - INCR counter             # -> (integer) 1
