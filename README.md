@@ -31,6 +31,8 @@ A Redis-compatible in-memory database built from scratch in Python. Supports rep
 
 ### Start the server:
 
+- If on Windows, install and type `wsl` and enter first.
+
 `python3 -m app.main`
 - <img width="741" height="70" alt="image" src="https://github.com/user-attachments/assets/ad834818-7440-44e6-b6e7-625060a558aa" />
 
